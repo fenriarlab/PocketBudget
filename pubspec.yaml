@@ -1,0 +1,38 @@
+name: pocket_budget
+description: "PocketBudget - A privacy-first, 100% local personal budget planning and expense tracking Android app."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  
+  # Local Database & Storage
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+
+  # State Management & DI
+  provider: ^6.1.1
+
+  # UI & Charts
+  fl_chart: ^0.66.0
+  intl: ^0.20.2
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.5.0
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
