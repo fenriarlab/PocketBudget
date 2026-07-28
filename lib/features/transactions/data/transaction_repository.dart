@@ -26,16 +26,24 @@ class TransactionRepository {
 
   Future<double> getTotalExpenseByMonth(String yyyyMM) async {
     final txs = await getTransactionsByMonth(yyyyMM);
-    return txs
-        .where((tx) => tx.type == TransactionType.expense)
-        .fold(0.0, (sum, item) => sum + item.amount);
+    double total = 0.0;
+    for (var tx in txs) {
+      if (tx.type == TransactionType.expense) {
+        total += tx.amount;
+      }
+    }
+    return total;
   }
 
   Future<double> getTotalIncomeByMonth(String yyyyMM) async {
     final txs = await getTransactionsByMonth(yyyyMM);
-    return txs
-        .where((tx) => tx.type == TransactionType.income)
-        .fold(0.0, (sum, item) => sum + item.amount);
+    double total = 0.0;
+    for (var tx in txs) {
+      if (tx.type == TransactionType.income) {
+        total += tx.amount;
+      }
+    }
+    return total;
   }
 
   Future<void> deleteTransaction(String id) async {
