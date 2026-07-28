@@ -1631,6 +1631,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ],
           ),
         );
+      },
+    );
+  }
+
   Widget _buildLegendDot(Color color, String label) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
