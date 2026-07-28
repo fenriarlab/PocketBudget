@@ -444,7 +444,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             itemCount: firstWeekday + daysInMonth,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.25,
             ),
             itemBuilder: (ctx, index) {
               if (index < firstWeekday) {
@@ -539,7 +539,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         // 5. Selected Date Details Section
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
