@@ -20,8 +20,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgradeDB,
     );
   }
 
@@ -69,7 +70,18 @@ class DatabaseHelper {
       )
     ''');
 
-    // 4. 预算表
+    // 4. 存钱/提取明细流水表 (新增)
+    await db.execute('''
+      CREATE TABLE savings_logs (
+        id $idType,
+        goal_id $textType,
+        amount $numType,
+        note TEXT,
+        created_at $intType
+      )
+    ''');
+
+    // 5. 预算表
     await db.execute('''
       CREATE TABLE budgets (
         period $idType,
@@ -79,6 +91,20 @@ class DatabaseHelper {
 
     // 初始化默认分类
     await _insertDefaultCategories(db);
+  }
+
+  Future<void> _onUpgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS savings_logs (
+          id TEXT PRIMARY KEY,
+          goal_id TEXT NOT NULL,
+          amount REAL NOT NULL,
+          note TEXT,
+          created_at INTEGER NOT NULL
+        )
+      ''');
+    }
   }
 
   Future<void> _insertDefaultCategories(Database db) async {

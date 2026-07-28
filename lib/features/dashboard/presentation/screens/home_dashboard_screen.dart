@@ -5,6 +5,7 @@ import '../../../transactions/data/transaction_repository.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../../../savings/data/savings_repository.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
+import '../../../savings/data/models/savings_log_model.dart';
 import '../../../budget/data/budget_repository.dart';
 import '../../../budget/data/models/budget_model.dart';
 
@@ -137,20 +138,55 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   // --- TAB 1: 看板 ---
   Widget _buildDashboardView() {
-    final remaining = _monthlyBudget - _monthlyExpense;
+    final remainingBudget = _monthlyBudget - _monthlyExpense;
     final pct = _monthlyBudget > 0 ? (_monthlyExpense / _monthlyBudget).clamp(0.0, 1.0) : 0.0;
 
     final now = DateTime.now();
     final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final remainingDays = (daysInMonth - now.day + 1).clamp(1, daysInMonth);
-    final dailyBudget = remaining > 0 ? (remaining / remainingDays) : 0.0;
+    final dailyQuota = remainingBudget > 0 ? (remainingBudget / remainingDays) : 0.0;
 
-    final totalSaved = _goals.fold(0.0, (sum, g) => sum + g.currentAmount);
+    final totalSavings = _goals.fold(0.0, (sum, g) => sum + g.currentAmount);
+    final liquidBalance = _monthlyIncome - _monthlyExpense;
+    final totalNetAssets = liquidBalance + totalSavings;
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Main Budget Card
+        // Total Assets Banner
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primary, AppColors.primaryDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('💎 个人总资产 (流动资金 + 存钱积蓄)', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const SizedBox(height: 6),
+              Text(
+                '¥ ${totalNetAssets.toStringAsFixed(2)}',
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('流动可用余额: ¥ ${liquidBalance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white90, fontSize: 12)),
+                  Text('存钱总积蓄: ¥ ${totalSavings.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white90, fontSize: 12, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Main Monthly Budget Card
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -164,11 +200,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Text('本月剩余可用预算 ($_currentPeriod)', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 8),
               Text(
-                '¥ ${remaining.toStringAsFixed(2)}',
+                '¥ ${remainingBudget.toStringAsFixed(2)}',
                 style: TextStyle(
-                  fontSize: 34,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
-                  color: remaining >= 0 ? AppColors.textPrimary : AppColors.expense,
+                  color: remainingBudget >= 0 ? AppColors.textPrimary : AppColors.expense,
                 ),
               ),
               const SizedBox(height: 16),
@@ -185,8 +221,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('总预算: ¥ ${_monthlyBudget.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  Text('已支出: ¥ ${_monthlyExpense.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.expense, fontSize: 13, fontWeight: FontWeight.bold)),
+                  Text('总预算上限: ¥ ${_monthlyBudget.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  Text('已支出/转存: ¥ ${_monthlyExpense.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -209,32 +245,18 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 children: [
                   Icon(Icons.lightbulb_outline, color: AppColors.warning, size: 20),
                   SizedBox(width: 8),
-                  Text('每日健康额度推荐', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text('每日建议消费上限 (动态保护)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
-                '¥ ${dailyBudget.toStringAsFixed(2)} / 天',
+                '¥ ${dailyQuota.toStringAsFixed(2)} / 天',
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.income),
               ),
               const SizedBox(height: 4),
-              Text('本月还剩 $remainingDays 天，控制每日支出不超过该数值即可健康预算。', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('本月还剩 $remainingDays 天，控制每日开销在该数值内即可达成攒钱目标。', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ],
           ),
-        ),
-        const SizedBox(height: 20),
-
-        // Quick Stats Row
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(title: '本月总收入', amount: '¥ ${_monthlyIncome.toStringAsFixed(2)}', color: AppColors.income),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _StatCard(title: '存钱总积攒', amount: '¥ ${totalSaved.toStringAsFixed(2)}', color: AppColors.primaryLight),
-            ),
-          ],
         ),
       ],
     );
@@ -300,7 +322,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- TAB 3: 存钱计划 ---
+  // --- TAB 3: 存钱计划 (多目标 + 存取流水明细) ---
   Widget _buildSavingsView() {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -308,34 +330,42 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('存钱计划 (目标看板)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            TextButton.icon(
+            const Text('🎯 存钱目标看板', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
               onPressed: () => _showAddGoalDialog(context),
-              icon: const Icon(Icons.add_task, size: 18),
-              label: const Text('新建目标'),
+              icon: const Icon(Icons.add, size: 18, color: Colors.white),
+              label: const Text('新建目标', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         if (_goals.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
             child: Center(
-              child: Text('还没有制定存钱目标，点击“新建目标”开始存钱吧！', style: TextStyle(color: AppColors.textSecondary)),
+              child: Text('还没有制定存钱目标，点击“新建目标”开始积攒吧！', style: TextStyle(color: AppColors.textSecondary)),
             ),
           )
         else
           ..._goals.map((goal) {
             final pct = goal.progressPercentage / 100.0;
+            final isCompleted = goal.currentAmount >= goal.targetAmount;
             final targetDateStr = DateFormat('yyyy-MM-dd').format(goal.targetDate);
+            final remainingDays = goal.remainingDays;
+            final remainingAmount = goal.remainingAmount;
+            final dailyNeeded = remainingDays > 0 ? (remainingAmount / remainingDays) : 0.0;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.darkSurface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
+                border: Border.all(
+                  color: isCompleted ? AppColors.income : AppColors.divider,
+                  width: isCompleted ? 1.5 : 1.0,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,7 +373,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(goal.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Row(
+                        children: [
+                          Text(goal.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                          if (isCompleted) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.income.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text('🎉 已达成', style: TextStyle(fontSize: 11, color: AppColors.income, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ],
+                      ),
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: AppColors.textMuted, size: 18),
                         onPressed: () async {
@@ -353,13 +398,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       ),
                     ],
                   ),
-                  Text('目标日期: $targetDateStr • 剩余 ${goal.remainingDays} 天', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  const SizedBox(height: 16),
+                  Text('目标日期: $targetDateStr • 剩余 $remainingDays 天', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 14),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('已存: ¥ ${goal.currentAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.income, fontWeight: FontWeight.bold)),
-                      Text('目标: ¥ ${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70)),
+                      Text('已存: ¥ ${goal.currentAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.income, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('目标: ¥ ${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -369,17 +414,55 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       value: pct,
                       minHeight: 8,
                       backgroundColor: Colors.white24,
-                      color: AppColors.income,
+                      color: isCompleted ? AppColors.income : AppColors.primaryLight,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showInjectDepositDialog(context, goal),
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('存入一笔'),
+                  const SizedBox(height: 10),
+
+                  // Smart Saving Velocity Badge
+                  if (!isCompleted && remainingDays > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.darkElevated,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "💡 推荐速率: 每日存入 ¥${dailyNeeded.toStringAsFixed(2)} 即可按时达成",
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
                     ),
+                  const SizedBox(height: 14),
+
+                  // Action Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _showGoalHistoryDialog(context, goal),
+                        icon: const Icon(Icons.history, size: 16, color: AppColors.primaryLight),
+                        label: const Text('流水明细', style: TextStyle(color: AppColors.primaryLight, fontSize: 13)),
+                      ),
+                      Row(
+                        children: [
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12)),
+                            onPressed: () => _showDepositModal(context, goal, isWithdraw: true),
+                            child: const Text('提取', style: TextStyle(color: AppColors.expense, fontSize: 13)),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.income,
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                            onPressed: () => _showDepositModal(context, goal, isWithdraw: false),
+                            icon: const Icon(Icons.add, size: 16, color: Colors.black),
+                            label: const Text('存入一笔', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -402,8 +485,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('月度预算上限设置 ($_currentPeriod)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
+                Text('月度消费预算上限设置 ($_currentPeriod)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text('设置合理消费预算，配合存钱计划，系统会自动为你保护每日健康开销。', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                const SizedBox(height: 14),
                 TextField(
                   controller: budgetController,
                   keyboardType: TextInputType.number,
@@ -437,7 +522,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- 弹窗逻辑 ---
+  // --- 弹窗与交互逻辑 ---
   void _showAddTransactionDialog(BuildContext context) {
     DateTime selectedDate = DateTime.now();
     TransactionType selectedType = TransactionType.expense;
@@ -611,12 +696,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('新建存钱目标', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text('🎯 新建存钱目标', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(
-                      labelText: '目标名称 (例如: 更换笔记本电脑)',
+                      labelText: '目标名称 (例如: 更换 MacBook M3)',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -688,41 +773,163 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  void _showInjectDepositDialog(BuildContext context, SavingsGoalModel goal) {
-    final depositController = TextEditingController();
+  void _showDepositModal(BuildContext context, SavingsGoalModel goal, {required bool isWithdraw}) {
+    final amtController = TextEditingController();
+    final noteController = TextEditingController();
+    bool deductFromBudget = true;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.darkSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: AppColors.darkSurface,
-          title: Text("为【${goal.title}】存入积蓄"),
-          content: TextField(
-            controller: depositController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '存入金额 (¥)',
-              prefixText: '¥ ',
-              border: OutlineInputBorder(),
-            ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isWithdraw ? "为【${goal.title}】提取备用金" : "为【${goal.title}】存入积蓄",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amtController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isWithdraw ? AppColors.expense : AppColors.income,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: isWithdraw ? '提取金额 (¥)' : '存入金额 (¥)',
+                      prefixText: '¥ ',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    decoration: const InputDecoration(
+                      labelText: '备注 (如: 项目奖金、发工资存入)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (!isWithdraw) ...[
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('同步从当月消费预算中扣除 (强迫储蓄)', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                      value: deductFromBudget,
+                      activeColor: AppColors.primary,
+                      onChanged: (val) {
+                        setModalState(() => deductFromBudget = val ?? true);
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isWithdraw ? AppColors.expense : AppColors.income,
+                      ),
+                      onPressed: () async {
+                        final val = double.tryParse(amtController.text.trim()) ?? 0.0;
+                        if (val <= 0) return;
+
+                        final finalAmount = isWithdraw ? -val : val;
+
+                        final log = SavingsLogModel(
+                          id: "slog_${DateTime.now().millisecondsSinceEpoch}",
+                          goalId: goal.id,
+                          amount: finalAmount,
+                          note: noteController.text.trim(),
+                          createdAt: DateTime.now(),
+                        );
+
+                        await _savingsRepo.addSavingsLog(log, deductFromBudget: !isWithdraw && deductFromBudget);
+                        Navigator.pop(ctx);
+                        _loadAllData();
+                      },
+                      child: Text(
+                        isWithdraw ? '确认提取' : '确认存入',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showGoalHistoryDialog(BuildContext context, SavingsGoalModel goal) async {
+    final logs = await _savingsRepo.getLogsForGoal(goal.id);
+
+    if (!mounted) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.darkSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('📜 【${goal.title}】存取明细历史', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Expanded(
+                child: logs.isEmpty
+                    ? const Center(child: Text('暂无存取记录', style: TextStyle(color: AppColors.textSecondary)))
+                    : ListView.builder(
+                        itemCount: logs.length,
+                        itemBuilder: (context, index) {
+                          final log = logs[index];
+                          final isDeposit = log.isDeposit;
+                          final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(log.createdAt);
+
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(
+                              isDeposit ? Icons.arrow_downward : Icons.arrow_upward,
+                              color: isDeposit ? AppColors.income : AppColors.expense,
+                            ),
+                            title: Text(
+                              isDeposit ? "存入 ¥${log.amount.toStringAsFixed(2)}" : "提取 ¥${(-log.amount).toStringAsFixed(2)}",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDeposit ? AppColors.income : AppColors.expense,
+                              ),
+                            ),
+                            subtitle: Text(
+                              log.note != null && log.note!.isNotEmpty ? "${log.note} • $dateStr" : dateStr,
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final amt = double.tryParse(depositController.text.trim()) ?? 0.0;
-                if (amt > 0) {
-                  await _savingsRepo.updateGoalProgress(goal.id, amt);
-                  Navigator.pop(ctx);
-                  _loadAllData();
-                }
-              },
-              child: const Text('确认存入'),
-            ),
-          ],
         );
       },
     );
