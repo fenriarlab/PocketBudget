@@ -364,24 +364,24 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final monthExpenseTotal = dailyExpenses.values.fold(0.0, (a, b) => a + b);
     final monthIncomeTotal = dailyIncomes.values.fold(0.0, (a, b) => a + b);
 
-    final dailyQuota = _monthlyBudget > 0 ? (_monthlyBudget / 30.0) : 150.0;
+    // 确保日预算基准区间合理 (最小 150元)，避免额度过小导致所有开销均直接爆表呈紫色
+    final baselineQuota = (_monthlyBudget > 0 ? (_monthlyBudget / 30.0) : 200.0).clamp(150.0, 1000.0);
     final now = DateTime.now();
     final isNotCurrentMonth = _calendarSelectedMonth.year != now.year || _calendarSelectedMonth.month != now.month;
 
-    Color getHeatmapColor(double exp, double inc, bool isSelected) {
-      if (isSelected) return AppColors.primary.withOpacity(0.35);
+    Color getHeatmapColor(double exp, double inc) {
       if (exp == 0) {
-        return AppColors.income.withOpacity(0.12);
+        return const Color(0xFF2ECC71).withOpacity(0.18); // 🌿 0支出翡翠绿
       }
-      final ratio = exp / dailyQuota;
+      final ratio = exp / baselineQuota;
       if (ratio <= 0.5) {
-        return const Color(0xFFF1C40F).withOpacity(0.20);
+        return const Color(0xFFF1C40F).withOpacity(0.40); // 🟨 0~50% 额度：明黄色 (轻微)
       } else if (ratio <= 1.0) {
-        return const Color(0xFFE67E22).withOpacity(0.30);
+        return const Color(0xFFE67E22).withOpacity(0.55); // 🟧 50~100% 额度：暖橙色 (接近)
       } else if (ratio <= 2.0) {
-        return const Color(0xFFE74C3C).withOpacity(0.40);
+        return const Color(0xFFFF4757).withOpacity(0.70); // 🟥 100~200% 额度：鲜红色 (超支)
       } else {
-        return const Color(0xFF8E44AD).withOpacity(0.55);
+        return const Color(0xFF8E44AD).withOpacity(0.80); // 🍷 >200% 额度：深紫红 (大额)
       }
     }
 
@@ -543,7 +543,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
               final exp = dailyExpenses[dateKey] ?? 0.0;
               final inc = dailyIncomes[dateKey] ?? 0.0;
-              final heatmapBg = getHeatmapColor(exp, inc, isSelected);
+              final heatmapBg = getHeatmapColor(exp, inc);
 
               return InkWell(
                 onTap: () {
