@@ -364,8 +364,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final monthExpenseTotal = dailyExpenses.values.fold(0.0, (a, b) => a + b);
     final monthIncomeTotal = dailyIncomes.values.fold(0.0, (a, b) => a + b);
 
-    // 确保日预算基准区间合理 (最小 150元)，避免额度过小导致所有开销均直接爆表呈紫色
-    final baselineQuota = (_monthlyBudget > 0 ? (_monthlyBudget / 30.0) : 200.0).clamp(150.0, 1000.0);
+    final dailyQuota = _monthlyBudget > 0 ? (_monthlyBudget / 30.0) : 150.0;
     final now = DateTime.now();
     final isNotCurrentMonth = _calendarSelectedMonth.year != now.year || _calendarSelectedMonth.month != now.month;
 
@@ -373,7 +372,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       if (exp == 0) {
         return const Color(0xFF2ECC71).withOpacity(0.18); // 🌿 0支出翡翠绿
       }
-      final ratio = exp / baselineQuota;
+      final ratio = exp / dailyQuota;
       if (ratio <= 0.5) {
         return const Color(0xFFF1C40F).withOpacity(0.40); // 🟨 0~50% 额度：明黄色 (轻微)
       } else if (ratio <= 1.0) {
