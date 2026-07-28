@@ -92,6 +92,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   void _showAddTransactionDialog(BuildContext context) {
+    DateTime selectedDate = DateTime.now();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -100,49 +102,86 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            top: 20,
-            left: 20,
-            right: 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('新增记账明细', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              const TextField(
-                keyboardType: TextInputType.number,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.income),
-                decoration: InputDecoration(
-                  labelText: '金额 (¥)',
-                  prefixText: '¥ ',
-                  border: OutlineInputBorder(),
-                ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final now = DateTime.now();
+            final isToday = selectedDate.year == now.year &&
+                selectedDate.month == now.month &&
+                selectedDate.day == now.day;
+            final dateStr = "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
               ),
-              const SizedBox(height: 12),
-              const TextField(
-                decoration: InputDecoration(
-                  labelText: '备注 (例如: 午餐、买书)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('新增记账明细', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  const TextField(
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.income),
+                    decoration: InputDecoration(
+                      labelText: '金额 (¥)',
+                      prefixText: '¥ ',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('保存到本地', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) {
+                        setModalState(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: '日期',
+                        prefixIcon: Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Text(
+                        isToday ? "今天 ($dateStr)" : dateStr,
+                        style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const TextField(
+                    decoration: InputDecoration(
+                      labelText: '备注 (例如: 午餐、买书)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('保存到本地', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
