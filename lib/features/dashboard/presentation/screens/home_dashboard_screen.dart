@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fl_chart/fl_chart.dart';
+
 import '../../../../core/constants/app_colors.dart';
 import '../../../transactions/data/transaction_repository.dart';
 import '../../../transactions/data/models/transaction_model.dart';
@@ -8,6 +12,7 @@ import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/data/models/savings_log_model.dart';
 import '../../../budget/data/budget_repository.dart';
 import '../../../budget/data/models/budget_model.dart';
+import '../../../backup/data/backup_repository.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
   const HomeDashboardScreen({super.key});
@@ -22,6 +27,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final TransactionRepository _txRepo = TransactionRepository();
   final SavingsRepository _savingsRepo = SavingsRepository();
   final BudgetRepository _budgetRepo = BudgetRepository();
+  final BackupRepository _backupRepo = BackupRepository();
 
   List<TransactionModel> _transactions = [];
   List<SavingsGoalModel> _goals = [];
@@ -35,12 +41,39 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   DateTime _calendarSelectedMonth = DateTime.now();
   DateTime _calendarSelectedDate = DateTime.now();
 
+  // Privacy Shield State
+  bool _isPrivacyHidden = false;
+
   final String _currentPeriod = DateFormat('yyyy-MM').format(DateTime.now());
 
   @override
   void initState() {
     super.initState();
+    _loadPrivacyPreference();
     _loadAllData();
+  }
+
+  Future<void> _loadPrivacyPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isPrivacyHidden = prefs.getBool('is_privacy_hidden') ?? false;
+    });
+  }
+
+  Future<void> _togglePrivacyPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isPrivacyHidden = !_isPrivacyHidden;
+      prefs.setBool('is_privacy_hidden', _isPrivacyHidden);
+    });
+  }
+
+  String _formatAmount(double amount, {bool isSigned = false, bool isExpense = false}) {
+    if (_isPrivacyHidden) {
+      return "¥ ****";
+    }
+    final prefix = isSigned ? (isExpense ? '-' : '+') : '';
+    return "$prefix¥ ${amount.toStringAsFixed(2)}";
   }
 
   Future<void> _loadAllData() async {
@@ -91,17 +124,22 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
           ],
         ),
-        actions: _currentIndex == 1
-            ? [
-                IconButton(
-                  tooltip: _isCalendarView ? '切换为列表视图' : '切换为日历视图',
-                  icon: Icon(_isCalendarView ? Icons.receipt_long : Icons.calendar_month, color: AppColors.primaryLight),
-                  onPressed: () {
-                    setState(() => _isCalendarView = !_isCalendarView);
-                  },
-                ),
-              ]
-            : null,
+        actions: [
+          // Privacy Shield Toggle
+          IconButton(
+            tooltip: _isPrivacyHidden ? '显示敏感金额' : '隐藏敏感金额',
+            icon: Icon(_isPrivacyHidden ? Icons.visibility_off : Icons.visibility, color: AppColors.primaryLight),
+            onPressed: _togglePrivacyPreference,
+          ),
+          if (_currentIndex == 1)
+            IconButton(
+              tooltip: _isCalendarView ? '切换为列表视图' : '切换为日历视图',
+              icon: Icon(_isCalendarView ? Icons.receipt_long : Icons.calendar_month, color: AppColors.primaryLight),
+              onPressed: () {
+                setState(() => _isCalendarView = !_isCalendarView);
+              },
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -146,7 +184,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           NavigationDestination(
             icon: Icon(Icons.pie_chart_outline, color: AppColors.textSecondary),
             selectedIcon: Icon(Icons.pie_chart, color: AppColors.primaryLight),
-            label: '预算评估',
+            label: '评估/工具',
           ),
         ],
       ),
@@ -184,18 +222,24 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('💎 个人总资产 (流动资金 + 存钱积蓄)', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('💎 个人总资产 (流动资金 + 存钱积蓄)', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  Icon(_isPrivacyHidden ? Icons.visibility_off : Icons.visibility, color: Colors.white70, size: 16),
+                ],
+              ),
               const SizedBox(height: 6),
               Text(
-                '¥ ${totalNetAssets.toStringAsFixed(2)}',
+                _formatAmount(totalNetAssets),
                 style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('流动可用余额: ¥ ${liquidBalance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  Text('存钱总积蓄: ¥ ${totalSavings.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('流动可用余额: ${_formatAmount(liquidBalance)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text('存钱总积蓄: ${_formatAmount(totalSavings)}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -217,7 +261,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Text('本月剩余可用预算 ($_currentPeriod)', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 8),
               Text(
-                '¥ ${remainingBudget.toStringAsFixed(2)}',
+                _formatAmount(remainingBudget),
                 style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -238,8 +282,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('总预算上限: ¥ ${_monthlyBudget.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                  Text('已支出/转存: ¥ ${_monthlyExpense.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('总预算上限: ${_formatAmount(_monthlyBudget)}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                  Text('已支出/转存: ${_formatAmount(_monthlyExpense)}', style: const TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -267,7 +311,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '¥ ${dailyQuota.toStringAsFixed(2)} / 天',
+                "${_formatAmount(dailyQuota)} / 天",
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.income),
               ),
               const SizedBox(height: 4),
@@ -356,9 +400,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Text('月支出: ¥${monthExpenseTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: AppColors.expense, fontWeight: FontWeight.bold)),
-              Text('月收入: ¥${monthIncomeTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: AppColors.income, fontWeight: FontWeight.bold)),
-              Text('结余: ¥${(monthIncomeTotal - monthExpenseTotal).toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text('月支出: ${_formatAmount(monthExpenseTotal)}', style: const TextStyle(fontSize: 12, color: AppColors.expense, fontWeight: FontWeight.bold)),
+              Text('月收入: ${_formatAmount(monthIncomeTotal)}', style: const TextStyle(fontSize: 12, color: AppColors.income, fontWeight: FontWeight.bold)),
+              Text('结余: ${_formatAmount(monthIncomeTotal - monthExpenseTotal)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             ],
           ),
         ),
@@ -464,7 +508,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      if (exp > 0)
+                      if (_isPrivacyHidden && (exp > 0 || inc > 0))
+                        const Text('****', style: TextStyle(fontSize: 8, color: AppColors.textMuted))
+                      else if (exp > 0)
                         Text(
                           "-${exp >= 1000 ? '${(exp / 1000).toStringAsFixed(1)}k' : exp.toStringAsFixed(0)}",
                           style: const TextStyle(fontSize: 9, color: AppColors.expense, fontWeight: FontWeight.bold),
@@ -495,7 +541,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "📅 ${DateFormat('MM月dd日').format(_calendarSelectedDate)} • 共 ${selectedDayTxs.length} 笔 (支出 ¥${selectedDayExpense.toStringAsFixed(2)})",
+                      "📅 ${DateFormat('MM月dd日').format(_calendarSelectedDate)} • 共 ${selectedDayTxs.length} 笔 (支出 ${_formatAmount(selectedDayExpense)})",
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
                     ),
                     TextButton.icon(
@@ -554,7 +600,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      "${isExpense ? '-' : '+'}¥${tx.amount.toStringAsFixed(2)}",
+                                      _formatAmount(tx.amount, isSigned: true, isExpense: isExpense),
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -620,7 +666,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "${isExpense ? '-' : '+'}¥${tx.amount.toStringAsFixed(2)}",
+                  _formatAmount(tx.amount, isSigned: true, isExpense: isExpense),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -723,8 +769,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('已存: ¥ ${goal.currentAmount.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.income, fontWeight: FontWeight.bold, fontSize: 15)),
-                      Text('目标: ¥ ${goal.targetAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      Text('已存: ${_formatAmount(goal.currentAmount)}', style: const TextStyle(color: AppColors.income, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text('目标: ${_formatAmount(goal.targetAmount)}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -748,7 +794,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        "💡 推荐速率: 每日存入 ¥${dailyNeeded.toStringAsFixed(2)} 即可按时达成",
+                        "💡 推荐速率: 每日存入 ${_formatAmount(dailyNeeded)} 即可按时达成",
                         style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                       ),
                     ),
@@ -792,13 +838,33 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- TAB 4: 预算评估 ---
+  // --- TAB 4: 评估与工具（分类饼图 + 离线 JSON 备份恢复） ---
   Widget _buildBudgetAssessmentView() {
     final budgetController = TextEditingController(text: _monthlyBudget.toStringAsFixed(0));
+
+    // Calculate Category Spending Distribution for Pie Chart
+    final Map<String, double> catExpenses = {};
+    for (var tx in _transactions) {
+      if (tx.type == TransactionType.expense) {
+        catExpenses[tx.categoryName] = (catExpenses[tx.categoryName] ?? 0.0) + tx.amount;
+      }
+    }
+
+    final totalExpense = catExpenses.values.fold(0.0, (a, b) => a + b);
+    final List<Color> palette = [
+      const Color(0xFFFF7675),
+      const Color(0xFF74B9FF),
+      const Color(0xFFA29BFE),
+      const Color(0xFFFFEAA7),
+      const Color(0xFFFD79A8),
+      const Color(0xFF00CEC9),
+      const Color(0xFF6C5CE7),
+    ];
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // 1. Monthly Budget Configuration Card
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -838,11 +904,234 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+
+        // 2. Category Spending Pie Chart Card
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('📊 本月消费分类占比统计', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                if (catExpenses.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text('本月尚无消费支出数据', style: TextStyle(color: AppColors.textSecondary))),
+                  )
+                else ...[
+                  SizedBox(
+                    height: 180,
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 40,
+                        sections: catExpenses.entries.toList().asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final catName = entry.value.key;
+                          final amount = entry.value.value;
+                          final pct = totalExpense > 0 ? (amount / totalExpense * 100) : 0.0;
+                          final color = palette[idx % palette.length];
+
+                          return PieChartSectionData(
+                            color: color,
+                            value: amount,
+                            title: "${pct.toStringAsFixed(1)}%",
+                            radius: 45,
+                            titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Category Legend List
+                  Column(
+                    children: catExpenses.entries.toList().asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final catName = entry.value.key;
+                      final amount = entry.value.value;
+                      final pct = totalExpense > 0 ? (amount / totalExpense * 100) : 0.0;
+                      final color = palette[idx % palette.length];
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                                const SizedBox(width: 8),
+                                Text(catName, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                              ],
+                            ),
+                            Text(
+                              "${_formatAmount(amount)} (${pct.toStringAsFixed(1)}%)",
+                              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // 3. Offline Data Backup & Restore Tools Card
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('📦 数据本地离线备份与恢复', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Text('由于 PocketBudget 100% 离线留存，你可以随时将 SQLite 数据库全量导出为 JSON 备份文件保存。', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showExportBackupDialog(context),
+                        icon: const Icon(Icons.download, size: 18),
+                        label: const Text('导出 JSON 备份'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                        onPressed: () => _showRestoreBackupDialog(context),
+                        icon: const Icon(Icons.upload, size: 18, color: Colors.white),
+                        label: const Text('恢复数据备份', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 
   // --- 弹窗与交互逻辑 ---
+  void _showExportBackupDialog(BuildContext context) async {
+    final jsonStr = await _backupRepo.exportBackupJson();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.darkSurface,
+          title: const Text('📦 导出 JSON 备份数据'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('已成功生成 100% 离线备份数据（包含所有账单、存钱计划与流水）。', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              Container(
+                height: 150,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.darkElevated, borderRadius: BorderRadius.circular(8)),
+                child: SingleChildScrollView(
+                  child: Text(jsonStr, style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: AppColors.textSecondary)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('关闭'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: jsonStr));
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('🎉 备份 JSON 数据已成功复制到剪贴板！')),
+                );
+              },
+              icon: const Icon(Icons.copy, size: 16, color: Colors.white),
+              label: const Text('复制 JSON 内容', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showRestoreBackupDialog(BuildContext context) {
+    final jsonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.darkSurface,
+          title: const Text('📥 恢复 JSON 数据备份'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('请将之前导出的 JSON 备份内容粘贴到下方，恢复将覆盖当前数据。', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: jsonController,
+                maxLines: 6,
+                style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                decoration: const InputDecoration(
+                  hintText: '粘贴备份 JSON 代码...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.expense),
+              onPressed: () async {
+                final input = jsonController.text.trim();
+                if (input.isEmpty) return;
+
+                final success = await _backupRepo.restoreBackupJson(input);
+                Navigator.pop(ctx);
+
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('🎉 数据备份已成功覆盖恢复！')),
+                  );
+                  _loadAllData();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('❌ JSON 备份数据格式校验失败，请检查文本。')),
+                  );
+                }
+              },
+              child: const Text('确认覆盖恢复', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showAddTransactionDialog(BuildContext context, {DateTime? defaultDate}) {
     DateTime selectedDate = defaultDate ?? DateTime.now();
     TransactionType selectedType = TransactionType.expense;
