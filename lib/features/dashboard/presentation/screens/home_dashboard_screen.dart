@@ -546,9 +546,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "📅 ${DateFormat('MM月dd日').format(_calendarSelectedDate)} • 共 ${selectedDayTxs.length} 笔 (支出 ${_formatAmount(selectedDayExpense)})",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                    Expanded(
+                      child: Text(
+                        "📅 ${DateFormat('MM月dd日').format(_calendarSelectedDate)} • 共 ${selectedDayTxs.length} 笔 (支出 ${_formatAmount(selectedDayExpense)})",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     TextButton.icon(
                       style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -562,17 +565,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 Expanded(
                   child: selectedDayTxs.isEmpty
                       ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('🌿 零支出日！该天没有消费记录~', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                              const SizedBox(height: 8),
-                              OutlinedButton.icon(
-                                onPressed: () => _showAddTransactionDialog(context, defaultDate: _calendarSelectedDate),
-                                icon: const Icon(Icons.add, size: 14),
-                                label: const Text('补记一笔', style: TextStyle(fontSize: 12)),
-                              ),
-                            ],
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('🌿 零支出日！该天没有消费记录~', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                const SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => _showAddTransactionDialog(context, defaultDate: _calendarSelectedDate),
+                                  icon: const Icon(Icons.add, size: 14),
+                                  label: const Text('补记一笔', style: TextStyle(fontSize: 12)),
+                                ),
+                              ],
+                            ),
                           ),
                         )
                       : ListView.builder(
