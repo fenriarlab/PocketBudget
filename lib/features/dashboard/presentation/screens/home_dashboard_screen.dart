@@ -30,6 +30,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   double _monthlyIncome = 0.0;
   bool _isLoading = true;
 
+  // Calendar View State
+  bool _isCalendarView = true;
+  DateTime _calendarSelectedMonth = DateTime.now();
+  DateTime _calendarSelectedDate = DateTime.now();
+
   final String _currentPeriod = DateFormat('yyyy-MM').format(DateTime.now());
 
   @override
@@ -41,8 +46,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<void> _loadAllData() async {
     final txs = await _txRepo.getAllTransactions();
     final goals = await _savingsRepo.getAllGoals();
-    final expense = await _txRepo.getTotalExpenseByMonth(_currentPeriod);
-    final income = await _txRepo.getTotalIncomeByMonth(_currentPeriod);
+    final selectedMonthStr = DateFormat('yyyy-MM').format(_calendarSelectedMonth);
+    final expense = await _txRepo.getTotalExpenseByMonth(selectedMonthStr);
+    final income = await _txRepo.getTotalIncomeByMonth(selectedMonthStr);
     final bModel = await _budgetRepo.getBudget(_currentPeriod);
 
     setState(() {
@@ -85,6 +91,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ),
           ],
         ),
+        actions: _currentIndex == 1
+            ? [
+                IconButton(
+                  tooltip: _isCalendarView ? '切换为列表视图' : '切换为日历视图',
+                  icon: Icon(_isCalendarView ? Icons.receipt_long : Icons.calendar_month, color: AppColors.primaryLight),
+                  onPressed: () {
+                    setState(() => _isCalendarView = !_isCalendarView);
+                  },
+                ),
+              ]
+            : null,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -98,7 +115,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddTransactionDialog(context),
+        onPressed: () => _showAddTransactionDialog(context, defaultDate: _calendarSelectedDate),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('记一笔', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
@@ -117,9 +134,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             label: '看板',
           ),
           NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined, color: AppColors.textSecondary),
-            selectedIcon: Icon(Icons.receipt_long, color: AppColors.primaryLight),
-            label: '明细',
+            icon: Icon(Icons.calendar_today_outlined, color: AppColors.textSecondary),
+            selectedIcon: Icon(Icons.calendar_month, color: AppColors.primaryLight),
+            label: '日历/明细',
           ),
           NavigationDestination(
             icon: Icon(Icons.savings_outlined, color: AppColors.textSecondary),
@@ -157,7 +174,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [AppColors.primary, AppColors.primaryDark],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -262,8 +279,311 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
-  // --- TAB 2: 明细 ---
+  // --- TAB 2: 明细与日历 View 融合 ---
   Widget _buildTransactionsView() {
+    if (!_isCalendarView) {
+      return _buildClassicListView();
+    }
+
+    final year = _calendarSelectedMonth.year;
+    final month = _calendarSelectedMonth.month;
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+    final firstWeekday = DateTime(year, month, 1).weekday % 7; // Sunday = 0
+
+    // Compute daily totals map for the selected month
+    final Map<String, double> dailyExpenses = {};
+    final Map<String, double> dailyIncomes = {};
+    final Map<String, List<TransactionModel>> dailyTxMap = {};
+
+    for (var tx in _transactions) {
+      if (tx.date.year == year && tx.date.month == month) {
+        final key = DateFormat('yyyy-MM-dd').format(tx.date);
+        dailyTxMap.putIfAbsent(key, () => []).add(tx);
+        if (tx.type == TransactionType.expense) {
+          dailyExpenses[key] = (dailyExpenses[key] ?? 0.0) + tx.amount;
+        } else {
+          dailyIncomes[key] = (dailyIncomes[key] ?? 0.0) + tx.amount;
+        }
+      }
+    }
+
+    final selectedDateStr = DateFormat('yyyy-MM-dd').format(_calendarSelectedDate);
+    final selectedDayTxs = dailyTxMap[selectedDateStr] ?? [];
+    final selectedDayExpense = dailyExpenses[selectedDateStr] ?? 0.0;
+
+    final monthExpenseTotal = dailyExpenses.values.fold(0.0, (a, b) => a + b);
+    final monthIncomeTotal = dailyIncomes.values.fold(0.0, (a, b) => a + b);
+
+    return Column(
+      children: [
+        // 1. Calendar Month Bar
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          color: AppColors.darkSurface,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left, color: AppColors.textSecondary),
+                onPressed: () {
+                  setState(() {
+                    _calendarSelectedMonth = DateTime(year, month - 1);
+                    _loadAllData();
+                  });
+                },
+              ),
+              Text(
+                DateFormat('yyyy 年 MM 月').format(_calendarSelectedMonth),
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                onPressed: () {
+                  setState(() {
+                    _calendarSelectedMonth = DateTime(year, month + 1);
+                    _loadAllData();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+
+        // 2. Month Overview Banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: AppColors.darkElevated,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text('月支出: ¥${monthExpenseTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: AppColors.expense, fontWeight: FontWeight.bold)),
+              Text('月收入: ¥${monthIncomeTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: AppColors.income, fontWeight: FontWeight.bold)),
+              Text('结余: ¥${(monthIncomeTotal - monthExpenseTotal).toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+
+        // 3. Weekday Headers
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          color: AppColors.darkSurface,
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Text('日', style: TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('一', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('二', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('三', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('四', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('五', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text('六', style: TextStyle(color: AppColors.primaryLight, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ),
+
+        // 4. Calendar Grid
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: const BoxDecoration(
+            color: AppColors.darkSurface,
+            border: Border(bottom: BorderSide(color: AppColors.divider)),
+          ),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: firstWeekday + daysInMonth,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1.1,
+            ),
+            itemBuilder: (ctx, index) {
+              if (index < firstWeekday) {
+                return const SizedBox.shrink();
+              }
+
+              final dayNum = index - firstWeekday + 1;
+              final thisDate = DateTime(year, month, dayNum);
+              final dateKey = DateFormat('yyyy-MM-dd').format(thisDate);
+
+              final now = DateTime.now();
+              final isToday = now.year == year && now.month == month && now.day == dayNum;
+              final isSelected = _calendarSelectedDate.year == year && _calendarSelectedDate.month == month && _calendarSelectedDate.day == dayNum;
+
+              final exp = dailyExpenses[dateKey] ?? 0.0;
+              final inc = dailyIncomes[dateKey] ?? 0.0;
+              final isHeavySpend = exp >= 300.0;
+
+              return InkWell(
+                onTap: () {
+                  setState(() => _calendarSelectedDate = thisDate);
+                },
+                onDoubleTap: () {
+                  setState(() => _calendarSelectedDate = thisDate);
+                  _showAddTransactionDialog(context, defaultDate: thisDate);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withOpacity(0.3)
+                        : isHeavySpend
+                            ? AppColors.expense.withOpacity(0.12)
+                            : AppColors.darkElevated.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : isToday
+                              ? AppColors.income
+                              : Colors.transparent,
+                      width: isSelected || isToday ? 1.5 : 0,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$dayNum',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected ? Colors.white : (isToday ? AppColors.income : AppColors.textPrimary),
+                            ),
+                          ),
+                          if (isToday)
+                            Container(
+                              margin: const EdgeInsets.only(left: 2),
+                              width: 4,
+                              height: 4,
+                              decoration: const BoxDecoration(color: AppColors.income, shape: BoxShape.circle),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      if (exp > 0)
+                        Text(
+                          "-${exp >= 1000 ? '${(exp / 1000).toStringAsFixed(1)}k' : exp.toStringAsFixed(0)}",
+                          style: const TextStyle(fontSize: 9, color: AppColors.expense, fontWeight: FontWeight.bold),
+                        )
+                      else if (inc > 0)
+                        Text(
+                          "+${inc >= 1000 ? '${(inc / 1000).toStringAsFixed(1)}k' : inc.toStringAsFixed(0)}",
+                          style: const TextStyle(fontSize: 9, color: AppColors.income, fontWeight: FontWeight.bold),
+                        )
+                      else if (thisDate.isBefore(now))
+                        const Text('🌿', style: TextStyle(fontSize: 8)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // 5. Selected Date Details Section
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "📅 ${DateFormat('MM月dd日').format(_calendarSelectedDate)} • 共 ${selectedDayTxs.length} 笔 (支出 ¥${selectedDayExpense.toStringAsFixed(2)})",
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                    ),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      onPressed: () => _showAddTransactionDialog(context, defaultDate: _calendarSelectedDate),
+                      icon: const Icon(Icons.add_circle_outline, size: 16, color: AppColors.primaryLight),
+                      label: const Text('为该日补记', style: TextStyle(color: AppColors.primaryLight, fontSize: 12)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: selectedDayTxs.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('🌿 零支出日！该天没有消费记录~', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                              const SizedBox(height: 8),
+                              OutlinedButton.icon(
+                                onPressed: () => _showAddTransactionDialog(context, defaultDate: _calendarSelectedDate),
+                                icon: const Icon(Icons.add, size: 14),
+                                label: const Text('补记一笔', style: TextStyle(fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: selectedDayTxs.length,
+                          itemBuilder: (ctx, idx) {
+                            final tx = selectedDayTxs[idx];
+                            final isExpense = tx.type == TransactionType.expense;
+                            final timeStr = DateFormat('HH:mm').format(tx.date);
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                dense: true,
+                                leading: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: isExpense ? AppColors.expense.withOpacity(0.15) : AppColors.income.withOpacity(0.15),
+                                  child: Text(
+                                    tx.categoryIcon.isNotEmpty ? tx.categoryIcon : (isExpense ? '💸' : '💰'),
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                ),
+                                title: Text(
+                                  tx.categoryName.isNotEmpty ? tx.categoryName : (isExpense ? '支出' : '收入'),
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                ),
+                                subtitle: Text(
+                                  tx.note != null && tx.note!.isNotEmpty ? "${tx.note} • $timeStr" : timeStr,
+                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "${isExpense ? '-' : '+'}¥${tx.amount.toStringAsFixed(2)}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isExpense ? AppColors.expense : AppColors.income,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: AppColors.textMuted, size: 18),
+                                      onPressed: () async {
+                                        await _txRepo.deleteTransaction(tx.id);
+                                        _loadAllData();
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClassicListView() {
     if (_transactions.isEmpty) {
       return const Center(
         child: Text('暂无记账明细，点击右下角“记一笔”开始记录！', style: TextStyle(color: AppColors.textSecondary)),
@@ -523,8 +843,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   // --- 弹窗与交互逻辑 ---
-  void _showAddTransactionDialog(BuildContext context) {
-    DateTime selectedDate = DateTime.now();
+  void _showAddTransactionDialog(BuildContext context, {DateTime? defaultDate}) {
+    DateTime selectedDate = defaultDate ?? DateTime.now();
     TransactionType selectedType = TransactionType.expense;
     String selectedCategory = '餐饮';
     String categoryIcon = '🍔';
