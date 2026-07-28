@@ -177,8 +177,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('流动可用余额: ¥ ${liquidBalance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white90, fontSize: 12)),
-                  Text('存钱总积蓄: ¥ ${totalSavings.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white90, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('流动可用余额: ¥ ${liquidBalance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text('存钱总积蓄: ¥ ${totalSavings.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
