@@ -100,29 +100,35 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text('💰 PocketBudget'),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.income.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.income.withOpacity(0.4)),
+        title: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('💰 PocketBudget'),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.income.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.income.withOpacity(0.4)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.shield_outlined, size: 12, color: AppColors.income),
+                    SizedBox(width: 3),
+                    Text(
+                      '100% 离线留存',
+                      style: TextStyle(fontSize: 10, color: AppColors.income, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
               ),
-              child: const Row(
-                children: [
-                  Icon(Icons.shield_outlined, size: 12, color: AppColors.income),
-                  SizedBox(width: 4),
-                  Text(
-                    '100% 离线留存',
-                    style: TextStyle(fontSize: 11, color: AppColors.income, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           // Privacy Shield Toggle
