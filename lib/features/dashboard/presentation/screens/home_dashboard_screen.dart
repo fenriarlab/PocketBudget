@@ -364,11 +364,32 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final monthExpenseTotal = dailyExpenses.values.fold(0.0, (a, b) => a + b);
     final monthIncomeTotal = dailyIncomes.values.fold(0.0, (a, b) => a + b);
 
+    final dailyQuota = _monthlyBudget > 0 ? (_monthlyBudget / 30.0) : 150.0;
+    final now = DateTime.now();
+    final isNotCurrentMonth = _calendarSelectedMonth.year != now.year || _calendarSelectedMonth.month != now.month;
+
+    Color getHeatmapColor(double exp, double inc, bool isSelected) {
+      if (isSelected) return AppColors.primary.withOpacity(0.35);
+      if (exp == 0) {
+        return AppColors.income.withOpacity(0.12);
+      }
+      final ratio = exp / dailyQuota;
+      if (ratio <= 0.5) {
+        return const Color(0xFFF1C40F).withOpacity(0.20);
+      } else if (ratio <= 1.0) {
+        return const Color(0xFFE67E22).withOpacity(0.30);
+      } else if (ratio <= 2.0) {
+        return const Color(0xFFE74C3C).withOpacity(0.40);
+      } else {
+        return const Color(0xFF8E44AD).withOpacity(0.55);
+      }
+    }
+
     return Column(
       children: [
-        // 1. Calendar Month Bar
+        // 1. Calendar Month Bar with Year/Month Quick Picker & Today Button
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           color: AppColors.darkSurface,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -382,18 +403,63 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   });
                 },
               ),
-              Text(
-                DateFormat('yyyy 年 MM 月').format(_calendarSelectedMonth),
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                onPressed: () {
-                  setState(() {
-                    _calendarSelectedMonth = DateTime(year, month + 1);
-                    _loadAllData();
-                  });
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _calendarSelectedMonth,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2035),
+                    initialDatePickerMode: DatePickerMode.year,
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _calendarSelectedMonth = DateTime(picked.year, picked.month);
+                      _loadAllData();
+                    });
+                  }
                 },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        DateFormat('yyyy 年 MM 月').format(_calendarSelectedMonth),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      ),
+                      const Icon(Icons.arrow_drop_down, color: AppColors.primaryLight),
+                    ],
+                  ),
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isNotCurrentMonth)
+                    TextButton.icon(
+                      style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6)),
+                      onPressed: () {
+                        setState(() {
+                          _calendarSelectedMonth = DateTime(now.year, now.month);
+                          _calendarSelectedDate = now;
+                          _loadAllData();
+                        });
+                      },
+                      icon: const Icon(Icons.today, size: 14, color: AppColors.income),
+                      label: const Text('回到今天', style: TextStyle(color: AppColors.income, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                    onPressed: () {
+                      setState(() {
+                        _calendarSelectedMonth = DateTime(year, month + 1);
+                        _loadAllData();
+                      });
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -401,7 +467,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
         // 2. Month Overview Banner
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           color: AppColors.darkElevated,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -413,9 +479,26 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ),
         ),
 
-        // 3. Weekday Headers
+        // 3. GitHub Style Heatmap Legend Bar
         Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          color: AppColors.darkSurface,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('压力图例: ', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+              _buildLegendDot(AppColors.income.withOpacity(0.4), '0元'),
+              _buildLegendDot(const Color(0xFFF1C40F), '轻微'),
+              _buildLegendDot(const Color(0xFFE67E22), '接近'),
+              _buildLegendDot(const Color(0xFFE74C3C), '超支'),
+              _buildLegendDot(const Color(0xFF8E44AD), '大额'),
+            ],
+          ),
+        ),
+
+        // 4. Weekday Headers
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 6),
           color: AppColors.darkSurface,
           child: const Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -431,9 +514,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           ),
         ),
 
-        // 4. Calendar Grid
+        // 5. Calendar Heatmap Grid
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: const BoxDecoration(
             color: AppColors.darkSurface,
             border: Border(bottom: BorderSide(color: AppColors.divider)),
@@ -455,13 +538,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               final thisDate = DateTime(year, month, dayNum);
               final dateKey = DateFormat('yyyy-MM-dd').format(thisDate);
 
-              final now = DateTime.now();
               final isToday = now.year == year && now.month == month && now.day == dayNum;
               final isSelected = _calendarSelectedDate.year == year && _calendarSelectedDate.month == month && _calendarSelectedDate.day == dayNum;
 
               final exp = dailyExpenses[dateKey] ?? 0.0;
               final inc = dailyIncomes[dateKey] ?? 0.0;
-              final isHeavySpend = exp >= 300.0;
+              final heatmapBg = getHeatmapColor(exp, inc, isSelected);
 
               return InkWell(
                 onTap: () {
@@ -475,11 +557,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.primary.withOpacity(0.3)
-                        : isHeavySpend
-                            ? AppColors.expense.withOpacity(0.12)
-                            : AppColors.darkElevated.withOpacity(0.4),
+                    color: heatmapBg,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
@@ -499,7 +577,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                           Text(
                             '$dayNum',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
                               color: isSelected ? Colors.white : (isToday ? AppColors.income : AppColors.textPrimary),
                             ),
@@ -513,7 +591,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       if (_isPrivacyHidden && (exp > 0 || inc > 0))
                         const Text('****', style: TextStyle(fontSize: 8, color: AppColors.textMuted))
                       else if (exp > 0)
@@ -1553,7 +1631,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             ],
           ),
         );
-      },
+  Widget _buildLegendDot(Color color, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(width: 2),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        ],
+      ),
     );
   }
 }
