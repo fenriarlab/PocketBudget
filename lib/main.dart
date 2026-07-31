@@ -33,6 +33,7 @@ class PocketBudgetApp extends StatelessWidget {
           primary: AppColors.primary,
           surface: AppColors.darkSurface,
         ),
+        fontFamily: 'Noto Sans CJK SC',
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.darkBackground,
           elevation: 0,
