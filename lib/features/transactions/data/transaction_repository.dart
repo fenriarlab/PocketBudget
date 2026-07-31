@@ -16,7 +16,6 @@ class TransactionRepository {
   }
 
   Future<List<TransactionModel>> getTransactionsByMonth(String yyyyMM) async {
-    final db = await _dbHelper.database;
     final all = await getAllTransactions();
     return all.where((tx) {
       final monthStr = "${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}";

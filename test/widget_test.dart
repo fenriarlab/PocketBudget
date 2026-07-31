@@ -1,30 +1,38 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:pocket_budget/main.dart';
+import 'package:pocket_budget/features/dashboard/presentation/screens/dashboard_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('dashboard shows remaining budget and daily quota', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: DashboardScreen(
+        monthlyBudget: 5000,
+        monthlyExpense: 1250,
+        monthlyIncome: 6000,
+        goals: [],
+        currentPeriod: '2026-08',
+        privacyHidden: false,
+      ),
+    ));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('本月剩余可用预算 (2026-08)'), findsOneWidget);
+    expect(find.text('¥ 3750.00'), findsOneWidget);
+    expect(find.text('每日建议消费上限'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('dashboard hides sensitive amounts', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: DashboardScreen(
+        monthlyBudget: 5000,
+        monthlyExpense: 1250,
+        monthlyIncome: 6000,
+        goals: [],
+        currentPeriod: '2026-08',
+        privacyHidden: true,
+      ),
+    ));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('¥ ****'), findsWidgets);
+    expect(find.text('¥ 3750.00'), findsNothing);
   });
 }
