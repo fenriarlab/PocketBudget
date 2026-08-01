@@ -137,13 +137,38 @@ class TransactionsScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _pickMonth(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030, 12, 31),
+      helpText: '选择月份',
+    );
+    if (picked != null) onMonthChanged(DateTime(picked.year, picked.month));
+  }
+
   Widget _monthBar(BuildContext context, int year, int month, bool isCurrentMonth, DateTime now) {
     return Container(
       color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => onMonthChanged(DateTime(year, month - 1))),
-        Text(DateFormat('yyyy 年 MM 月').format(selectedMonth), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        InkWell(
+          onTap: () => _pickMonth(context),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(DateFormat('yyyy 年 MM 月').format(selectedMonth), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 4),
+                const Icon(Icons.calendar_month_outlined, size: 18),
+              ],
+            ),
+          ),
+        ),
         Row(mainAxisSize: MainAxisSize.min, children: [
           if (!isCurrentMonth) TextButton(onPressed: () => onMonthChanged(DateTime(now.year, now.month)), child: const Text('今天')),
           IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => onMonthChanged(DateTime(year, month + 1))),

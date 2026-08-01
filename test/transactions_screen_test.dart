@@ -37,7 +37,35 @@ void main() {
     ));
 
     expect(find.text('2026 年 08 月'), findsOneWidget);
+    expect(find.byIcon(Icons.calendar_month_outlined), findsOneWidget);
     expect(find.text('-¥ 35.00'), findsOneWidget);
     expect(find.text('餐饮'), findsOneWidget);
+  });
+
+  testWidgets('calendar month title opens a date picker', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          height: 900,
+          child: TransactionsScreen(
+            transactions: const [],
+            selectedMonth: DateTime(2026, 8),
+            selectedDate: DateTime(2026, 8, 1),
+            dailyQuota: 250,
+            privacyHidden: false,
+            calendarView: true,
+            onMonthChanged: (_) {},
+            onDateSelected: (_) {},
+            onDelete: (_) {},
+            onAdd: (_) {},
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.text('2026 年 08 月'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('选择月份'), findsOneWidget);
   });
 }
