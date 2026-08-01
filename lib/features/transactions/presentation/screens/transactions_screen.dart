@@ -37,7 +37,7 @@ class TransactionsScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => calendarView ? _buildCalendar() : _buildList();
+  Widget build(BuildContext context) => calendarView ? _buildCalendar(context) : _buildList();
 
   Widget _buildList() {
     if (transactions.isEmpty) return const Center(child: Text('暂无记账明细，点击右下角“记一笔”开始记录！', style: TextStyle(color: AppColors.textSecondary)));
@@ -48,7 +48,7 @@ class TransactionsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCalendar() {
+  Widget _buildCalendar(BuildContext context) {
     final year = selectedMonth.year;
     final month = selectedMonth.month;
     final days = DateUtils.getDaysInMonth(year, month);
@@ -67,20 +67,13 @@ class TransactionsScreen extends StatelessWidget {
 
     final selectedKey = DateFormat('yyyy-MM-dd').format(selectedDate);
     final selectedTransactions = dailyTransactions[selectedKey] ?? [];
-    final monthExpense = dailyExpenses.values.fold<double>(0, (sum, value) => sum + value);
-    final monthIncome = dailyIncomes.values.fold<double>(0, (sum, value) => sum + value);
     final now = DateTime.now();
     final isCurrentMonth = now.year == year && now.month == month;
 
     return Column(children: [
-      _monthBar(year, month, isCurrentMonth, now),
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        Text('月支出: ${_amount(monthExpense)}', style: const TextStyle(fontSize: 12, color: AppColors.expense, fontWeight: FontWeight.bold)),
-        Text('月收入: ${_amount(monthIncome)}', style: const TextStyle(fontSize: 12, color: AppColors.income, fontWeight: FontWeight.bold)),
-        Text('结余: ${_amount(monthIncome - monthExpense)}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-      ])),
-      const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        Text('日'), Text('一'), Text('二'), Text('三'), Text('四'), Text('五'), Text('六'),
+      _monthBar(context, year, month, isCurrentMonth, now),
+      Padding(padding: const EdgeInsets.fromLTRB(12, 2, 12, 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+        for (final label in const ['日', '一', '二', '三', '四', '五', '六']) Text(label, style: TextStyle(fontSize: 12, color: label == '日' || label == '六' ? AppColors.textSecondary : null, fontWeight: FontWeight.w500)),
       ])),
       Expanded(
         child: GridView.builder(
@@ -99,7 +92,7 @@ class TransactionsScreen extends StatelessWidget {
             onDoubleTap: () => onAdd(date),
             child: Container(
               margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(color: _heatColor(expense), borderRadius: BorderRadius.circular(8), border: Border.all(color: selected ? AppColors.primary : Colors.transparent, width: 1.5)),
+              decoration: BoxDecoration(color: _heatColor(context, expense), borderRadius: BorderRadius.circular(8), border: Border.all(color: selected ? AppColors.primary : Colors.transparent, width: 1.5)),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Text('${date.day}', style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
                 if (privacyHidden && (expense > 0 || income > 0)) const Text('****', style: TextStyle(fontSize: 8, color: AppColors.textMuted))
@@ -111,13 +104,37 @@ class TransactionsScreen extends StatelessWidget {
           },
         ),
       ),
+      _pressureLegend(context),
       SizedBox(height: 260, child: _selectedDay(selectedTransactions)),
     ]);
   }
 
-  Widget _monthBar(int year, int month, bool isCurrentMonth, DateTime now) {
+  Widget _pressureLegend(BuildContext context) {
+    const levels = [
+      ('很低', Color(0xFF65C99A)),
+      ('偏低', Color(0xFFA8D96D)),
+      ('适中', Color(0xFFF3B34C)),
+      ('偏高', Color(0xFFE96A68)),
+      ('过高', Color(0xFF9C65D6)),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+      child: Row(
+        children: [
+          Text('压力图例：', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ...levels.map((level) => Expanded(child: Row(children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: level.$2, shape: BoxShape.circle)),
+            const SizedBox(width: 3),
+            Text(level.$1, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ]))),
+        ],
+      ),
+    );
+  }
+
+  Widget _monthBar(BuildContext context, int year, int month, bool isCurrentMonth, DateTime now) {
     return Container(
-      color: AppColors.darkSurface,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => onMonthChanged(DateTime(year, month - 1))),
@@ -159,8 +176,8 @@ class TransactionsScreen extends StatelessWidget {
     );
   }
 
-  Color _heatColor(double expense) {
-    if (expense == 0) return AppColors.income.withValues(alpha: 0.18);
+  Color _heatColor(BuildContext context, double expense) {
+    if (expense == 0) return AppColors.income.withValues(alpha: 0.12);
     final ratio = dailyQuota > 0 ? expense / dailyQuota : 1;
     if (ratio <= 0.5) return const Color(0xFFF1C40F).withValues(alpha: 0.4);
     if (ratio <= 1) return const Color(0xFFE67E22).withValues(alpha: 0.55);

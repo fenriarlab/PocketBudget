@@ -94,8 +94,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         ],
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildPage(),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(onPressed: () => _showTransactionSheet(_selectedDate), icon: const Icon(Icons.add), label: const Text('记一笔'))
+        floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(onPressed: () => _showTransactionSheet(_selectedDate), tooltip: '记一笔', child: const Icon(Icons.add, size: 28))
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

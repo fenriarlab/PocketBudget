@@ -102,16 +102,18 @@ class DashboardScreen extends StatelessWidget {
       ]);
     }
 
+    final progress = monthlyBudget > 0 ? (monthlyExpense / monthlyBudget).clamp(0.0, 1.0) : 0.0;
+
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Row(
-            children: [
-              Expanded(child: _SummaryMetric(label: '月支出', value: _amount(monthlyExpense), color: AppColors.expense)),
-              Expanded(child: _SummaryMetric(label: '月收入', value: _amount(monthlyIncome), color: AppColors.income)),
-              Expanded(child: _SummaryMetric(label: '结余', value: _amount(liquidBalance), color: AppColors.textPrimary)),
-            ],
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: _MonthlySummaryCard(
+            expense: _amount(monthlyExpense),
+            income: _amount(monthlyIncome),
+            balance: _amount(liquidBalance),
+            expenseProgress: progress,
+            incomeProgress: monthlyBudget > 0 ? (monthlyIncome / monthlyBudget).clamp(0.0, 1.0) : 0.0,
           ),
         ),
         Expanded(
@@ -133,23 +135,79 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _SummaryMetric extends StatelessWidget {
+class _MonthlySummaryCard extends StatelessWidget {
+  final String expense;
+  final String income;
+  final String balance;
+  final double expenseProgress;
+  final double incomeProgress;
+
+  const _MonthlySummaryCard({required this.expense, required this.income, required this.balance, required this.expenseProgress, required this.incomeProgress});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+      children: [
+          Row(
+            children: [
+              Expanded(child: _Metric(label: '月支出', value: expense, color: AppColors.expense)),
+              Expanded(child: _Metric(label: '月收入', value: income, color: AppColors.income)),
+              Expanded(child: _Metric(label: '结余', value: balance, color: colorScheme.onSurface)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(child: _ProgressLine(label: '${(expenseProgress * 100).round()}% 预算', value: expenseProgress, color: AppColors.expense)),
+              const SizedBox(width: 18),
+              Expanded(child: _ProgressLine(label: '${(incomeProgress * 100).round()}% 预算', value: incomeProgress, color: AppColors.income)),
+            ],
+          ),
+      ],
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
 
-  const _SummaryMetric({required this.label, required this.value, required this.color});
+  const _Metric({required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-        const SizedBox(height: 4),
-        FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown, child: Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold))),
-      ],
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+      const SizedBox(height: 5),
+      FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown, child: Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold))),
+    ]);
+  }
+}
+
+class _ProgressLine extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color color;
+
+  const _ProgressLine({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
+      const SizedBox(height: 5),
+      ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: value, minHeight: 5, backgroundColor: color.withValues(alpha: 0.14), color: color)),
+    ]);
   }
 }
 
