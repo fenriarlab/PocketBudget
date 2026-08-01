@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_budget/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:pocket_budget/features/settings/presentation/screens/settings_screen.dart';
 
 void main() {
   testWidgets('dashboard shows remaining budget and daily quota', (tester) async {
@@ -34,5 +35,21 @@ void main() {
 
     expect(find.text('¥ ****'), findsWidgets);
     expect(find.text('¥ 3750.00'), findsNothing);
+  });
+
+  testWidgets('settings updates default privacy preference', (tester) async {
+    bool? updatedValue;
+    await tester.pumpWidget(MaterialApp(
+      home: SettingsScreen(
+        themeMode: ThemeMode.light,
+        onThemeModeChanged: (_) {},
+        privacyDefaultHidden: true,
+        onPrivacyDefaultChanged: (value) => updatedValue = value,
+      ),
+    ));
+
+    expect(find.text('默认隐藏金额'), findsOneWidget);
+    await tester.tap(find.byType(Switch));
+    expect(updatedValue, isFalse);
   });
 }

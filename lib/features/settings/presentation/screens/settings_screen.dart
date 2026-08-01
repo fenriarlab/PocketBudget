@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 class SettingsScreen extends StatelessWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final bool privacyDefaultHidden;
+  final ValueChanged<bool> onPrivacyDefaultChanged;
 
-  const SettingsScreen({super.key, required this.themeMode, required this.onThemeModeChanged});
+  const SettingsScreen({super.key, required this.themeMode, required this.onThemeModeChanged, required this.privacyDefaultHidden, required this.onPrivacyDefaultChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,16 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: SwitchListTile(
+            secondary: const Icon(Icons.visibility_off_outlined),
+            title: const Text('默认隐藏金额'),
+            subtitle: const Text('打开应用时先隐藏所有金额，适合在公共场合使用'),
+            value: privacyDefaultHidden,
+            onChanged: onPrivacyDefaultChanged,
           ),
         ),
         const SizedBox(height: 12),

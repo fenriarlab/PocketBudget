@@ -35,7 +35,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   int _selectedIndex = 0;
   bool _isLoading = true;
-  bool _privacyHidden = false;
+  bool _privacyHidden = true;
+  bool _privacyDefaultHidden = true;
   bool _isBottomSheetOpen = false;
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selectedDate = DateTime.now();
@@ -54,14 +55,31 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   Future<void> _loadPrivacyPreference() async {
     final preferences = await SharedPreferences.getInstance();
-    if (mounted) setState(() => _privacyHidden = preferences.getBool('is_privacy_hidden') ?? false);
+    final defaultHidden = preferences.getBool('privacy_default_hidden') ?? true;
+    if (mounted) {
+      setState(() {
+        _privacyDefaultHidden = defaultHidden;
+        _privacyHidden = defaultHidden;
+      });
+    }
   }
 
   Future<void> _togglePrivacy() async {
     final nextValue = !_privacyHidden;
+    if (mounted) {
+      setState(() => _privacyHidden = nextValue);
+    }
+  }
+
+  Future<void> _setPrivacyDefaultHidden(bool hidden) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool('is_privacy_hidden', nextValue);
-    if (mounted) setState(() => _privacyHidden = nextValue);
+    await preferences.setBool('privacy_default_hidden', hidden);
+    if (mounted) {
+      setState(() {
+        _privacyDefaultHidden = hidden;
+        _privacyHidden = hidden;
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -139,7 +157,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onRestoreBackup: _showRestoreBackup,
         );
       case 3:
-        return SettingsScreen(themeMode: widget.themeMode, onThemeModeChanged: widget.onThemeModeChanged);
+        return SettingsScreen(
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
+          privacyDefaultHidden: _privacyDefaultHidden,
+          onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
+        );
       default:
         return DashboardScreen(
           monthlyBudget: _monthlyBudget,
