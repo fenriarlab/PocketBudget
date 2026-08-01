@@ -37,7 +37,7 @@ void main() {
     ));
 
     expect(find.text('2026 年 08 月'), findsOneWidget);
-    expect(find.text('月支出: ¥ 35.00'), findsOneWidget);
+    expect(find.text('-¥ 35.00'), findsOneWidget);
     expect(find.text('餐饮'), findsOneWidget);
   });
 }
