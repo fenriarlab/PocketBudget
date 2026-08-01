@@ -36,6 +36,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   int _selectedIndex = 0;
   bool _isLoading = true;
   bool _privacyHidden = false;
+  bool _isBottomSheetOpen = false;
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selectedDate = DateTime.now();
   List<TransactionModel> _transactions = [];
@@ -166,8 +167,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showTransactionSheet(DateTime date) async {
-    await showModalBottomSheet<void>(
-      context: context,
+    await _showBottomSheet<void>(
       isScrollControlled: true,
       builder: (sheetContext) => _TransactionSheet(
         date: date,
@@ -181,8 +181,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showGoalSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
+    await _showBottomSheet<void>(
       isScrollControlled: true,
       builder: (sheetContext) => SavingsGoalSheet(
         onSave: (goal) async {
@@ -195,31 +194,34 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showDepositSheet(SavingsGoalModel goal, bool isWithdraw) async {
-    final amountController = TextEditingController();
-    final noteController = TextEditingController();
-    bool deductFromBudget = true;
-    await showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (sheetContext) => StatefulBuilder(builder: (context, setSheetState) => Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(isWithdraw ? '从「${goal.title}」提取' : '向「${goal.title}」存入', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        TextField(controller: amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: isWithdraw ? '提取金额' : '存入金额', prefixText: '¥ ', border: const OutlineInputBorder())),
-        const SizedBox(height: 12),
-        TextField(controller: noteController, decoration: const InputDecoration(labelText: '备注', border: OutlineInputBorder())),
-        if (!isWithdraw) CheckboxListTile(value: deductFromBudget, contentPadding: EdgeInsets.zero, title: const Text('同步从月度预算扣除'), onChanged: (value) => setSheetState(() => deductFromBudget = value ?? true)),
-        const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { final value = double.tryParse(amountController.text); if (value == null || value <= 0) return; final log = SavingsLogModel(id: 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: goal.id, amount: isWithdraw ? -value : value, note: noteController.text.trim(), createdAt: DateTime.now()); await _savingsRepository.addSavingsLog(log, deductFromBudget: !isWithdraw && deductFromBudget); if (sheetContext.mounted) Navigator.pop(sheetContext); }, child: Text(isWithdraw ? '确认提取' : '确认存入'))),
-      ]),
-    )));
-    amountController.dispose();
-    noteController.dispose();
+    await _showBottomSheet<void>(
+      isScrollControlled: true,
+      builder: (sheetContext) => SavingsDepositSheet(
+        goal: goal,
+        isWithdraw: isWithdraw,
+        onSave: (log, deductFromBudget) async {
+          await _savingsRepository.addSavingsLog(log, deductFromBudget: deductFromBudget);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
     if (mounted) _loadData();
   }
 
   Future<void> _showGoalHistory(SavingsGoalModel goal) async {
     final logs = await _savingsRepository.getLogsForGoal(goal.id);
     if (!mounted) return;
-    showModalBottomSheet<void>(context: context, builder: (context) => ListView(padding: const EdgeInsets.all(20), children: [Text('「${goal.title}」流水明细', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 12), if (logs.isEmpty) const Text('暂无记录', style: TextStyle(color: AppColors.textSecondary)) else ...logs.map((log) => ListTile(leading: Icon(log.isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: log.isDeposit ? AppColors.income : AppColors.expense), title: Text('${log.isDeposit ? '存入' : '提取'} ¥${log.amount.abs().toStringAsFixed(2)}'), subtitle: Text(log.note ?? '')))]));
+    await _showBottomSheet<void>(builder: (context) => ListView(padding: const EdgeInsets.all(20), children: [Text('「${goal.title}」流水明细', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 12), if (logs.isEmpty) const Text('暂无记录', style: TextStyle(color: AppColors.textSecondary)) else ...logs.map((log) => ListTile(leading: Icon(log.isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: log.isDeposit ? AppColors.income : AppColors.expense), title: Text('${log.isDeposit ? '存入' : '提取'} ¥${log.amount.abs().toStringAsFixed(2)}'), subtitle: Text(log.note ?? '')))]));
+  }
+
+  Future<T?> _showBottomSheet<T>({required WidgetBuilder builder, bool isScrollControlled = false}) async {
+    if (_isBottomSheetOpen || !mounted) return null;
+    _isBottomSheetOpen = true;
+    try {
+      return await showModalBottomSheet<T>(context: context, isScrollControlled: isScrollControlled, builder: builder);
+    } finally {
+      _isBottomSheetOpen = false;
+    }
   }
 
   Future<void> _showExportBackup() async {
@@ -396,6 +398,64 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
                 ));
               },
               child: const Text('创建目标'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SavingsDepositSheet extends StatefulWidget {
+  final SavingsGoalModel goal;
+  final bool isWithdraw;
+  final Future<void> Function(SavingsLogModel log, bool deductFromBudget) onSave;
+
+  const SavingsDepositSheet({super.key, required this.goal, required this.isWithdraw, required this.onSave});
+
+  @override
+  State<SavingsDepositSheet> createState() => _SavingsDepositSheetState();
+}
+
+class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
+  final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
+  bool _deductFromBudget = true;
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(widget.isWithdraw ? '从「${widget.goal.title}」提取' : '向「${widget.goal.title}」存入', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextField(controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: widget.isWithdraw ? '提取金额' : '存入金额', prefixText: '¥ ', border: const OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: _noteController, decoration: const InputDecoration(labelText: '备注', border: OutlineInputBorder())),
+          if (!widget.isWithdraw)
+            CheckboxListTile(value: _deductFromBudget, contentPadding: EdgeInsets.zero, title: const Text('同步从月度预算扣除'), onChanged: (value) => setState(() => _deductFromBudget = value ?? true)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                final value = double.tryParse(_amountController.text);
+                if (value == null || value <= 0) return;
+                await widget.onSave(
+                  SavingsLogModel(id: 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: widget.goal.id, amount: widget.isWithdraw ? -value : value, note: _noteController.text.trim(), createdAt: DateTime.now()),
+                  !widget.isWithdraw && _deductFromBudget,
+                );
+              },
+              child: Text(widget.isWithdraw ? '确认提取' : '确认存入'),
             ),
           ),
         ],
