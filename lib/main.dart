@@ -57,6 +57,12 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
         scaffoldBackgroundColor: const Color(0xFFF7F7F3),
         colorScheme: const ColorScheme.light(primary: AppColors.primary, surface: Colors.white),
         fontFamily: 'Noto Sans CJK SC',
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xFFEAF0FF),
+          iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(color: states.contains(WidgetState.selected) ? AppColors.primary : const Color(0xFF9AA3B2))),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(color: states.contains(WidgetState.selected) ? AppColors.primary : const Color(0xFF9AA3B2))),
+        ),
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 0,
@@ -71,6 +77,12 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
           surface: AppColors.darkSurface,
         ),
         fontFamily: 'Noto Sans CJK SC',
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.darkSurface,
+          indicatorColor: const Color(0xFF293A62),
+          iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(color: states.contains(WidgetState.selected) ? AppColors.primaryLight : AppColors.textSecondary)),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(color: states.contains(WidgetState.selected) ? AppColors.primaryLight : AppColors.textSecondary)),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.darkBackground,
           elevation: 0,
