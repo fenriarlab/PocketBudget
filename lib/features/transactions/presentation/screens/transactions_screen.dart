@@ -70,13 +70,18 @@ class TransactionsScreen extends StatelessWidget {
     final now = DateTime.now();
     final isCurrentMonth = now.year == year && now.month == month;
 
-    return Column(children: [
+    final weekCount = ((firstWeekday + days) / 7).ceil();
+    final calendarHeight = weekCount * 52.0;
+
+    return ListView(children: [
       _monthBar(context, year, month, isCurrentMonth, now),
       Padding(padding: const EdgeInsets.fromLTRB(12, 2, 12, 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
         for (final label in const ['日', '一', '二', '三', '四', '五', '六']) Text(label, style: TextStyle(fontSize: 12, color: label == '日' || label == '六' ? AppColors.textSecondary : null, fontWeight: FontWeight.w500)),
       ])),
-      Expanded(
+      SizedBox(
+        height: calendarHeight,
         child: GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.all(8),
           itemCount: firstWeekday + days,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, childAspectRatio: 1.25),
