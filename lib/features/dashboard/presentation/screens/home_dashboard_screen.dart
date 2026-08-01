@@ -196,7 +196,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
               if (amount == null || amount <= 0) return;
               await _transactionRepository.insertTransaction(TransactionModel(id: 'tx_${DateTime.now().microsecondsSinceEpoch}', amount: amount, type: selectedType, categoryId: category, categoryName: category, categoryIcon: icon, date: selectedDate, note: noteController.text.trim()));
               if (sheetContext.mounted) Navigator.pop(sheetContext);
-              _loadData();
             }, child: const Text('保存到本地'))),
           ]),
         );
@@ -204,6 +203,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
     amountController.dispose();
     noteController.dispose();
+    if (mounted) _loadData();
   }
 
   Future<void> _showGoalSheet() async {
@@ -221,11 +221,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         const SizedBox(height: 12),
         ListTile(title: const Text('预计完成日期'), subtitle: Text(DateFormat('yyyy-MM-dd').format(targetDate)), trailing: const Icon(Icons.calendar_month), onTap: () async { final picked = await showDatePicker(context: context, initialDate: targetDate, firstDate: DateTime.now(), lastDate: DateTime(2035)); if (picked != null) setSheetState(() => targetDate = picked); }),
         const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { final amount = double.tryParse(amountController.text); if (amount == null || amount <= 0 || titleController.text.trim().isEmpty) return; await _savingsRepository.insertGoal(SavingsGoalModel(id: 'goal_${DateTime.now().microsecondsSinceEpoch}', title: titleController.text.trim(), targetAmount: amount, targetDate: targetDate, createdAt: DateTime.now())); if (sheetContext.mounted) Navigator.pop(sheetContext); _loadData(); }, child: const Text('创建目标'))),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { final amount = double.tryParse(amountController.text); if (amount == null || amount <= 0 || titleController.text.trim().isEmpty) return; await _savingsRepository.insertGoal(SavingsGoalModel(id: 'goal_${DateTime.now().microsecondsSinceEpoch}', title: titleController.text.trim(), targetAmount: amount, targetDate: targetDate, createdAt: DateTime.now())); if (sheetContext.mounted) Navigator.pop(sheetContext); }, child: const Text('创建目标'))),
       ]),
     )));
     titleController.dispose();
     amountController.dispose();
+    if (mounted) _loadData();
   }
 
   Future<void> _showDepositSheet(SavingsGoalModel goal, bool isWithdraw) async {
@@ -242,11 +243,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         TextField(controller: noteController, decoration: const InputDecoration(labelText: '备注', border: OutlineInputBorder())),
         if (!isWithdraw) CheckboxListTile(value: deductFromBudget, contentPadding: EdgeInsets.zero, title: const Text('同步从月度预算扣除'), onChanged: (value) => setSheetState(() => deductFromBudget = value ?? true)),
         const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { final value = double.tryParse(amountController.text); if (value == null || value <= 0) return; final log = SavingsLogModel(id: 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: goal.id, amount: isWithdraw ? -value : value, note: noteController.text.trim(), createdAt: DateTime.now()); await _savingsRepository.addSavingsLog(log, deductFromBudget: !isWithdraw && deductFromBudget); if (sheetContext.mounted) Navigator.pop(sheetContext); _loadData(); }, child: Text(isWithdraw ? '确认提取' : '确认存入'))),
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { final value = double.tryParse(amountController.text); if (value == null || value <= 0) return; final log = SavingsLogModel(id: 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: goal.id, amount: isWithdraw ? -value : value, note: noteController.text.trim(), createdAt: DateTime.now()); await _savingsRepository.addSavingsLog(log, deductFromBudget: !isWithdraw && deductFromBudget); if (sheetContext.mounted) Navigator.pop(sheetContext); }, child: Text(isWithdraw ? '确认提取' : '确认存入'))),
       ]),
     )));
     amountController.dispose();
     noteController.dispose();
+    if (mounted) _loadData();
   }
 
   Future<void> _showGoalHistory(SavingsGoalModel goal) async {
