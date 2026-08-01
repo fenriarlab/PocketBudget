@@ -17,6 +17,8 @@ class AppColors {
   static const Color darkElevated = Color(0xFF22262E);   // Modals & Bottom Sheets
 
   // Typography Neutrals
+  static const Color lightTextPrimary = Color(0xFF263248);
+  static const Color lightTextSecondary = Color(0xFF758096);
   static const Color textPrimary = Color(0xFFF5F5F7);
   static const Color textSecondary = Color(0xFF9297A5);
   static const Color textMuted = Color(0xFF656B78);

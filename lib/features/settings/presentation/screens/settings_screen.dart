@@ -13,7 +13,7 @@ class SettingsScreen extends StatelessWidget {
       children: [
         const Text('我的', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        const Text('管理显示偏好和本地数据', style: TextStyle(color: Colors.grey)),
+        Text('管理显示偏好和本地数据', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 24),
         Card(
           child: Column(
@@ -38,12 +38,12 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        const Card(
+        Card(
           child: ListTile(
-            leading: Icon(Icons.lock_outline),
-            title: Text('本地存储'),
-            subtitle: Text('财务数据仅保存在本机'),
-            trailing: Icon(Icons.verified_outlined, color: Colors.green),
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('本地存储'),
+              subtitle: const Text('财务数据仅保存在本机'),
+            trailing: Icon(Icons.verified_outlined, color: Theme.of(context).colorScheme.primary),
           ),
         ),
       ],

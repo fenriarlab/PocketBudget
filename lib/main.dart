@@ -55,8 +55,19 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF7F7F3),
-        colorScheme: const ColorScheme.light(primary: AppColors.primary, surface: Colors.white),
+        colorScheme: const ColorScheme.light(primary: AppColors.primary, surface: Colors.white, onSurface: AppColors.lightTextPrimary, onSurfaceVariant: AppColors.lightTextSecondary),
         fontFamily: 'Noto Sans CJK SC',
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: AppColors.lightTextPrimary),
+          bodyMedium: TextStyle(color: AppColors.lightTextPrimary),
+          bodySmall: TextStyle(color: AppColors.lightTextSecondary),
+          titleLarge: TextStyle(color: AppColors.lightTextPrimary),
+          titleMedium: TextStyle(color: AppColors.lightTextPrimary),
+          titleSmall: TextStyle(color: AppColors.lightTextSecondary),
+          labelLarge: TextStyle(color: AppColors.lightTextPrimary),
+          labelMedium: TextStyle(color: AppColors.lightTextSecondary),
+          labelSmall: TextStyle(color: AppColors.lightTextSecondary),
+        ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFFEAF0FF),
@@ -75,8 +86,21 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
         colorScheme: const ColorScheme.dark(
           primary: AppColors.primary,
           surface: AppColors.darkSurface,
+          onSurface: AppColors.textPrimary,
+          onSurfaceVariant: AppColors.textSecondary,
         ),
         fontFamily: 'Noto Sans CJK SC',
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: AppColors.textPrimary),
+          bodyMedium: TextStyle(color: AppColors.textPrimary),
+          bodySmall: TextStyle(color: AppColors.textSecondary),
+          titleLarge: TextStyle(color: AppColors.textPrimary),
+          titleMedium: TextStyle(color: AppColors.textPrimary),
+          titleSmall: TextStyle(color: AppColors.textSecondary),
+          labelLarge: TextStyle(color: AppColors.textPrimary),
+          labelMedium: TextStyle(color: AppColors.textSecondary),
+          labelSmall: TextStyle(color: AppColors.textSecondary),
+        ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: AppColors.darkSurface,
           indicatorColor: const Color(0xFF293A62),
