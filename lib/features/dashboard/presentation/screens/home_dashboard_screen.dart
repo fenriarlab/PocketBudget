@@ -181,25 +181,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showGoalSheet() async {
-    final titleController = TextEditingController();
-    final amountController = TextEditingController();
-    DateTime targetDate = DateTime.now().add(const Duration(days: 90));
-    await showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (sheetContext) => StatefulBuilder(builder: (context, setSheetState) => Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('新建存钱目标', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        TextField(controller: titleController, decoration: const InputDecoration(labelText: '目标名称', border: OutlineInputBorder())),
-        const SizedBox(height: 12),
-        TextField(controller: amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '目标金额', prefixText: '¥ ', border: OutlineInputBorder())),
-        const SizedBox(height: 12),
-        ListTile(title: const Text('预计完成日期'), subtitle: Text(DateFormat('yyyy-MM-dd').format(targetDate)), trailing: const Icon(Icons.calendar_month), onTap: () async { final picked = await showDatePicker(context: context, initialDate: targetDate, firstDate: DateTime.now(), lastDate: DateTime(2035)); if (picked != null) setSheetState(() => targetDate = picked); }),
-        const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { final amount = double.tryParse(amountController.text); if (amount == null || amount <= 0 || titleController.text.trim().isEmpty) return; await _savingsRepository.insertGoal(SavingsGoalModel(id: 'goal_${DateTime.now().microsecondsSinceEpoch}', title: titleController.text.trim(), targetAmount: amount, targetDate: targetDate, createdAt: DateTime.now())); if (sheetContext.mounted) Navigator.pop(sheetContext); }, child: const Text('创建目标'))),
-      ]),
-    )));
-    titleController.dispose();
-    amountController.dispose();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SavingsGoalSheet(
+        onSave: (goal) async {
+          await _savingsRepository.insertGoal(goal);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
     if (mounted) _loadData();
   }
 
@@ -336,6 +327,75 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                 ));
               },
               child: const Text('保存到本地'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SavingsGoalSheet extends StatefulWidget {
+  final Future<void> Function(SavingsGoalModel goal) onSave;
+
+  const SavingsGoalSheet({super.key, required this.onSave});
+
+  @override
+  State<SavingsGoalSheet> createState() => _SavingsGoalSheetState();
+}
+
+class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
+  final _titleController = TextEditingController();
+  final _amountController = TextEditingController();
+  DateTime _targetDate = DateTime.now().add(const Duration(days: 90));
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('新建存钱目标', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextField(controller: _titleController, decoration: const InputDecoration(labelText: '目标名称', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          TextField(controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '目标金额', prefixText: '¥ ', border: OutlineInputBorder())),
+          const SizedBox(height: 12),
+          ListTile(
+            title: const Text('预计完成日期'),
+            subtitle: Text(DateFormat('yyyy-MM-dd').format(_targetDate)),
+            trailing: const Icon(Icons.calendar_month),
+            onTap: () async {
+              final picked = await showDatePicker(context: context, initialDate: _targetDate, firstDate: DateTime.now(), lastDate: DateTime(2035));
+              if (picked != null && mounted) setState(() => _targetDate = picked);
+            },
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                final amount = double.tryParse(_amountController.text);
+                final title = _titleController.text.trim();
+                if (amount == null || amount <= 0 || title.isEmpty) return;
+                await widget.onSave(SavingsGoalModel(
+                  id: 'goal_${DateTime.now().microsecondsSinceEpoch}',
+                  title: title,
+                  targetAmount: amount,
+                  targetDate: _targetDate,
+                  createdAt: DateTime.now(),
+                ));
+              },
+              child: const Text('创建目标'),
             ),
           ),
         ],
