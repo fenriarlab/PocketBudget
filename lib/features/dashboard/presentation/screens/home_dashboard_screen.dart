@@ -184,6 +184,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             await _transactionRepository.deleteTransaction(transaction.id);
             _loadData();
           },
+          onEdit: _showEditTransactionSheet,
           onAdd: _showTransactionSheet,
         );
     }
@@ -196,6 +197,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         date: date,
         onSave: (transaction) async {
           await _transactionRepository.insertTransaction(transaction);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
+    if (mounted) _loadData();
+  }
+
+  Future<void> _showEditTransactionSheet(TransactionModel transaction) async {
+    await _showBottomSheet<void>(
+      isScrollControlled: true,
+      builder: (sheetContext) => _TransactionSheet(
+        date: transaction.date,
+        initialTransaction: transaction,
+        onSave: (updatedTransaction) async {
+          await _transactionRepository.updateTransaction(updatedTransaction);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
         },
       ),
@@ -262,9 +278,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
 class _TransactionSheet extends StatefulWidget {
   final DateTime date;
+  final TransactionModel? initialTransaction;
   final Future<void> Function(TransactionModel transaction) onSave;
 
-  const _TransactionSheet({required this.date, required this.onSave});
+  const _TransactionSheet({required this.date, this.initialTransaction, required this.onSave});
 
   @override
   State<_TransactionSheet> createState() => _TransactionSheetState();
@@ -276,6 +293,19 @@ class _TransactionSheetState extends State<_TransactionSheet> {
   TransactionType _selectedType = TransactionType.expense;
   String _category = '餐饮';
   String _icon = '🍔';
+
+  @override
+  void initState() {
+    super.initState();
+    final transaction = widget.initialTransaction;
+    if (transaction != null) {
+      _amountController.text = transaction.amount.toStringAsFixed(2);
+      _noteController.text = transaction.note ?? '';
+      _selectedType = transaction.type;
+      _category = transaction.categoryName;
+      _icon = transaction.categoryIcon;
+    }
+  }
 
   @override
   void dispose() {
@@ -299,7 +329,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('新增记账明细', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(widget.initialTransaction == null ? '新增记账明细' : '编辑记账明细', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SegmentedButton<TransactionType>(
                 segments: const [
                   ButtonSegment(value: TransactionType.expense, label: Text('支出')),
@@ -341,7 +371,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                 final amount = double.tryParse(_amountController.text.trim());
                 if (amount == null || amount <= 0) return;
                 await widget.onSave(TransactionModel(
-                  id: 'tx_${DateTime.now().microsecondsSinceEpoch}',
+                  id: widget.initialTransaction?.id ?? 'tx_${DateTime.now().microsecondsSinceEpoch}',
                   amount: amount,
                   type: _selectedType,
                   categoryId: _category,
@@ -351,7 +381,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   note: _noteController.text.trim(),
                 ));
               },
-              child: const Text('保存到本地'),
+              child: Text(widget.initialTransaction == null ? '保存到本地' : '保存修改'),
             ),
           ),
         ],

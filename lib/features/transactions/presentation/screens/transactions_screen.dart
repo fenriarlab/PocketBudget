@@ -14,6 +14,7 @@ class TransactionsScreen extends StatelessWidget {
   final ValueChanged<DateTime> onMonthChanged;
   final ValueChanged<DateTime> onDateSelected;
   final ValueChanged<TransactionModel> onDelete;
+  final ValueChanged<TransactionModel> onEdit;
   final ValueChanged<DateTime> onAdd;
 
   const TransactionsScreen({
@@ -27,6 +28,7 @@ class TransactionsScreen extends StatelessWidget {
     required this.onMonthChanged,
     required this.onDateSelected,
     required this.onDelete,
+    required this.onEdit,
     required this.onAdd,
   });
 
@@ -44,7 +46,7 @@ class TransactionsScreen extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: transactions.length,
-      itemBuilder: (context, index) => _transactionTile(transactions[index]),
+      itemBuilder: (context, index) => _transactionTile(context, transactions[index]),
     );
   }
 
@@ -110,7 +112,7 @@ class TransactionsScreen extends StatelessWidget {
         ),
       ),
       _pressureLegend(context),
-      SizedBox(height: 260, child: _selectedDay(selectedTransactions)),
+      SizedBox(height: 260, child: _selectedDay(context, selectedTransactions)),
     ]);
   }
 
@@ -177,7 +179,7 @@ class TransactionsScreen extends StatelessWidget {
     );
   }
 
-  Widget _selectedDay(List<TransactionModel> selectedTransactions) {
+  Widget _selectedDay(BuildContext context, List<TransactionModel> selectedTransactions) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -185,23 +187,40 @@ class TransactionsScreen extends StatelessWidget {
           Text(DateFormat('MM月dd日').format(selectedDate), style: const TextStyle(fontWeight: FontWeight.bold)),
           TextButton.icon(onPressed: () => onAdd(selectedDate), icon: const Icon(Icons.add, size: 16), label: const Text('补记')),
         ]),
-        Expanded(child: selectedTransactions.isEmpty ? const Center(child: Text('当天暂无记录', style: TextStyle(color: AppColors.textSecondary))) : ListView(children: selectedTransactions.map(_transactionTile).toList())),
+        Expanded(child: selectedTransactions.isEmpty ? const Center(child: Text('当天暂无记录', style: TextStyle(color: AppColors.textSecondary))) : ListView(children: selectedTransactions.map((transaction) => _transactionTile(context, transaction)).toList())),
       ]),
     );
   }
 
-  Widget _transactionTile(TransactionModel transaction) {
+  Future<void> _showTransactionActions(BuildContext context, TransactionModel transaction) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(leading: const Icon(Icons.edit_outlined), title: const Text('编辑'), onTap: () => Navigator.pop(context, 'edit')),
+            ListTile(leading: const Icon(Icons.delete_outline), title: const Text('删除'), onTap: () => Navigator.pop(context, 'delete')),
+          ],
+        ),
+      ),
+    );
+    if (action == 'edit') onEdit(transaction);
+    if (action == 'delete') onDelete(transaction);
+  }
+
+  Widget _transactionTile(BuildContext context, TransactionModel transaction) {
     final expense = transaction.type == TransactionType.expense;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(child: Text(transaction.categoryIcon.isEmpty ? (expense ? '支' : '收') : transaction.categoryIcon)),
-        title: Text(transaction.categoryName),
-        subtitle: Text(transaction.note?.isNotEmpty == true ? '${transaction.note} · ${DateFormat('HH:mm').format(transaction.date)}' : DateFormat('yyyy-MM-dd HH:mm').format(transaction.date)),
-        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(_amount(transaction.amount, signed: true, expense: expense), style: TextStyle(color: expense ? AppColors.expense : AppColors.income, fontWeight: FontWeight.bold)),
-          IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => onDelete(transaction)),
-        ]),
+      child: GestureDetector(
+        onLongPress: () => _showTransactionActions(context, transaction),
+        child: ListTile(
+          leading: CircleAvatar(child: Text(transaction.categoryIcon.isEmpty ? (expense ? '支' : '收') : transaction.categoryIcon)),
+          title: Text(transaction.categoryName),
+          subtitle: Text(transaction.note?.isNotEmpty == true ? '${transaction.note} · ${DateFormat('HH:mm').format(transaction.date)}' : DateFormat('yyyy-MM-dd HH:mm').format(transaction.date)),
+          trailing: Text(_amount(transaction.amount, signed: true, expense: expense), style: TextStyle(color: expense ? AppColors.expense : AppColors.income, fontWeight: FontWeight.bold)),
+        ),
       ),
     );
   }

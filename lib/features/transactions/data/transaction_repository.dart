@@ -9,6 +9,11 @@ class TransactionRepository {
     await db.insert('transactions', tx.toMap());
   }
 
+  Future<void> updateTransaction(TransactionModel tx) async {
+    final db = await _dbHelper.database;
+    await db.update('transactions', tx.toMap(), where: 'id = ?', whereArgs: [tx.id]);
+  }
+
   Future<List<TransactionModel>> getAllTransactions() async {
     final db = await _dbHelper.database;
     final maps = await db.query('transactions', orderBy: 'date DESC');

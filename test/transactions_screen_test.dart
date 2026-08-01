@@ -30,6 +30,7 @@ void main() {
           onMonthChanged: (_) {},
           onDateSelected: (_) {},
           onDelete: (_) {},
+          onEdit: (_) {},
           onAdd: (_) {},
           ),
         ),
@@ -57,6 +58,7 @@ void main() {
             onMonthChanged: (_) {},
             onDateSelected: (_) {},
             onDelete: (_) {},
+            onEdit: (_) {},
             onAdd: (_) {},
           ),
         ),
@@ -67,5 +69,45 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('选择月份'), findsOneWidget);
+  });
+
+  testWidgets('long pressing a transaction opens edit and delete actions', (tester) async {
+    final transaction = TransactionModel(
+      id: 'tx-2',
+      amount: 100,
+      type: TransactionType.expense,
+      categoryId: 'cat_food',
+      categoryName: '餐饮',
+      categoryIcon: '🍔',
+      date: DateTime(2026, 8, 11),
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SizedBox(
+          height: 900,
+          child: TransactionsScreen(
+            transactions: [transaction],
+            selectedMonth: DateTime(2026, 8),
+            selectedDate: DateTime(2026, 8, 11),
+            dailyQuota: 250,
+            privacyHidden: false,
+            calendarView: true,
+            onMonthChanged: (_) {},
+            onDateSelected: (_) {},
+            onDelete: (_) {},
+            onEdit: (_) {},
+            onAdd: (_) {},
+          ),
+        ),
+      ),
+    ));
+
+    await tester.longPress(find.text('餐饮'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑'), findsOneWidget);
+    expect(find.text('删除'), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
   });
 }

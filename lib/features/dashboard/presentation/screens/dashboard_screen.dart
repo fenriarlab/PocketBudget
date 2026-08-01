@@ -19,6 +19,7 @@ class DashboardScreen extends StatelessWidget {
   final ValueChanged<DateTime>? onMonthChanged;
   final ValueChanged<DateTime>? onDateSelected;
   final ValueChanged<TransactionModel>? onDelete;
+  final ValueChanged<TransactionModel>? onEdit;
   final ValueChanged<DateTime>? onAdd;
 
   const DashboardScreen({
@@ -36,6 +37,7 @@ class DashboardScreen extends StatelessWidget {
     this.onMonthChanged,
     this.onDateSelected,
     this.onDelete,
+    this.onEdit,
     this.onAdd,
   });
 
@@ -127,6 +129,7 @@ class DashboardScreen extends StatelessWidget {
             onMonthChanged: onMonthChanged!,
             onDateSelected: onDateSelected!,
             onDelete: onDelete!,
+            onEdit: onEdit!,
             onAdd: onAdd!,
           ),
         ),
