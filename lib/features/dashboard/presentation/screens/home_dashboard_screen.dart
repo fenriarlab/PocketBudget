@@ -11,13 +11,16 @@ import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/data/models/savings_log_model.dart';
 import '../../../savings/data/savings_repository.dart';
 import '../../../savings/presentation/screens/savings_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../../../transactions/data/transaction_repository.dart';
-import '../../../transactions/presentation/screens/transactions_screen.dart';
 import 'dashboard_screen.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
-  const HomeDashboardScreen({super.key});
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  const HomeDashboardScreen({super.key, required this.themeMode, required this.onThemeModeChanged});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -33,7 +36,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   int _selectedIndex = 0;
   bool _isLoading = true;
   bool _privacyHidden = false;
-  bool _calendarView = true;
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _selectedDate = DateTime.now();
   List<TransactionModel> _transactions = [];
@@ -89,26 +91,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             icon: Icon(_privacyHidden ? Icons.visibility_off : Icons.visibility),
             onPressed: _togglePrivacy,
           ),
-          if (_selectedIndex == 1)
-            IconButton(
-              tooltip: _calendarView ? '切换为列表视图' : '切换为日历视图',
-              icon: Icon(_calendarView ? Icons.receipt_long : Icons.calendar_month),
-              onPressed: () => setState(() => _calendarView = !_calendarView),
-            ),
         ],
       ),
       body: _isLoading ? const Center(child: CircularProgressIndicator()) : _buildPage(),
-      floatingActionButton: _selectedIndex < 2
+      floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton.extended(onPressed: () => _showTransactionSheet(_selectedDate), icon: const Icon(Icons.add), label: const Text('记一笔'))
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) => setState(() => _selectedIndex = index),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: '看板'),
-          NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_month), label: '日历/明细'),
-          NavigationDestination(icon: Icon(Icons.savings_outlined), selectedIcon: Icon(Icons.savings), label: '存钱目标'),
-          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: '分析工具'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: '首页'),
+          NavigationDestination(icon: Icon(Icons.savings_outlined), selectedIcon: Icon(Icons.savings), label: '计划'),
+          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: '分析'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: '我的'),
         ],
       ),
     );
@@ -117,25 +113,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Widget _buildPage() {
     switch (_selectedIndex) {
       case 1:
-        return TransactionsScreen(
-          transactions: _transactions,
-          selectedMonth: _selectedMonth,
-          selectedDate: _selectedDate,
-          dailyQuota: _monthlyBudget / 30,
-          privacyHidden: _privacyHidden,
-          calendarView: _calendarView,
-          onMonthChanged: (month) => setState(() {
-            _selectedMonth = DateTime(month.year, month.month);
-            _selectedDate = DateTime(month.year, month.month, 1);
-          }),
-          onDateSelected: (date) => setState(() => _selectedDate = date),
-          onDelete: (transaction) async {
-            await _transactionRepository.deleteTransaction(transaction.id);
-            _loadData();
-          },
-          onAdd: _showTransactionSheet,
-        );
-      case 2:
         return SavingsScreen(
           goals: _goals,
           privacyHidden: _privacyHidden,
@@ -147,7 +124,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onHistory: _showGoalHistory,
           onDeposit: _showDepositSheet,
         );
-      case 3:
+      case 2:
         return AnalysisScreen(
           transactions: _transactions,
           monthlyBudget: _monthlyBudget,
@@ -160,8 +137,31 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onExportBackup: _showExportBackup,
           onRestoreBackup: _showRestoreBackup,
         );
+      case 3:
+        return SettingsScreen(themeMode: widget.themeMode, onThemeModeChanged: widget.onThemeModeChanged);
       default:
-        return DashboardScreen(monthlyBudget: _monthlyBudget, monthlyExpense: _monthlyExpense, monthlyIncome: _monthlyIncome, goals: _goals, currentPeriod: _currentPeriod, privacyHidden: _privacyHidden);
+        return DashboardScreen(
+          monthlyBudget: _monthlyBudget,
+          monthlyExpense: _monthlyExpense,
+          monthlyIncome: _monthlyIncome,
+          goals: _goals,
+          currentPeriod: _currentPeriod,
+          privacyHidden: _privacyHidden,
+          transactions: _transactions,
+          selectedMonth: _selectedMonth,
+          selectedDate: _selectedDate,
+          dailyQuota: _monthlyBudget / 30,
+          onMonthChanged: (month) => setState(() {
+            _selectedMonth = DateTime(month.year, month.month);
+            _selectedDate = DateTime(month.year, month.month, 1);
+          }),
+          onDateSelected: (date) => setState(() => _selectedDate = date),
+          onDelete: (transaction) async {
+            await _transactionRepository.deleteTransaction(transaction.id);
+            _loadData();
+          },
+          onAdd: _showTransactionSheet,
+        );
     }
   }
 

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
+import '../../../transactions/data/models/transaction_model.dart';
+import '../../../transactions/presentation/screens/transactions_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   final double monthlyBudget;
@@ -10,6 +12,14 @@ class DashboardScreen extends StatelessWidget {
   final List<SavingsGoalModel> goals;
   final String currentPeriod;
   final bool privacyHidden;
+  final List<TransactionModel>? transactions;
+  final DateTime? selectedMonth;
+  final DateTime? selectedDate;
+  final double? dailyQuota;
+  final ValueChanged<DateTime>? onMonthChanged;
+  final ValueChanged<DateTime>? onDateSelected;
+  final ValueChanged<TransactionModel>? onDelete;
+  final ValueChanged<DateTime>? onAdd;
 
   const DashboardScreen({
     super.key,
@@ -19,6 +29,14 @@ class DashboardScreen extends StatelessWidget {
     required this.goals,
     required this.currentPeriod,
     required this.privacyHidden,
+    this.transactions,
+    this.selectedMonth,
+    this.selectedDate,
+    this.dailyQuota,
+    this.onMonthChanged,
+    this.onDateSelected,
+    this.onDelete,
+    this.onAdd,
   });
 
   String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
@@ -33,9 +51,7 @@ class DashboardScreen extends StatelessWidget {
     final totalSavings = goals.fold<double>(0, (sum, goal) => sum + goal.currentAmount);
     final liquidBalance = monthlyIncome - monthlyExpense;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    final summary = [
         _AssetBanner(
           totalAssets: liquidBalance + totalSavings,
           liquidBalance: liquidBalance,
@@ -43,7 +59,6 @@ class DashboardScreen extends StatelessWidget {
           amount: _amount,
           privacyHidden: privacyHidden,
         ),
-        const SizedBox(height: 16),
         _BudgetCard(
           period: currentPeriod,
           remainingBudget: remainingBudget,
@@ -51,7 +66,6 @@ class DashboardScreen extends StatelessWidget {
           monthlyExpense: monthlyExpense,
           amount: _amount,
         ),
-        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -76,6 +90,64 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
         ),
+    ];
+
+    if (transactions == null) {
+      return ListView(padding: const EdgeInsets.all(16), children: [
+        summary[0],
+        const SizedBox(height: 16),
+        summary[1],
+        const SizedBox(height: 16),
+        summary[2],
+      ]);
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Row(
+            children: [
+              Expanded(child: _SummaryMetric(label: '月支出', value: _amount(monthlyExpense), color: AppColors.expense)),
+              Expanded(child: _SummaryMetric(label: '月收入', value: _amount(monthlyIncome), color: AppColors.income)),
+              Expanded(child: _SummaryMetric(label: '结余', value: _amount(liquidBalance), color: AppColors.textPrimary)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: TransactionsScreen(
+            transactions: transactions!,
+            selectedMonth: selectedMonth!,
+            selectedDate: selectedDate!,
+            dailyQuota: this.dailyQuota ?? dailyQuota,
+            privacyHidden: privacyHidden,
+            calendarView: true,
+            onMonthChanged: onMonthChanged!,
+            onDateSelected: onDateSelected!,
+            onDelete: onDelete!,
+            onAdd: onAdd!,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _SummaryMetric({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        const SizedBox(height: 4),
+        FittedBox(alignment: Alignment.centerLeft, fit: BoxFit.scaleDown, child: Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold))),
       ],
     );
   }
