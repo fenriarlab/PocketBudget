@@ -166,43 +166,17 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showTransactionSheet(DateTime date) async {
-    DateTime selectedDate = date;
-    TransactionType selectedType = TransactionType.expense;
-    String category = '餐饮';
-    String icon = '🍔';
-    final amountController = TextEditingController();
-    final noteController = TextEditingController();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => StatefulBuilder(builder: (context, setSheetState) {
-        final categories = selectedType == TransactionType.expense ? const {'餐饮': '🍔', '交通': '🚌', '购物': '🛍️', '居住': '🏠', '娱乐': '🎮'} : const {'工资收入': '💰', '理财/奖金': '📈'};
-        return Padding(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('新增记账明细', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SegmentedButton<TransactionType>(segments: const [ButtonSegment(value: TransactionType.expense, label: Text('支出')), ButtonSegment(value: TransactionType.income, label: Text('收入'))], selected: {selectedType}, onSelectionChanged: (value) => setSheetState(() { selectedType = value.first; category = selectedType == TransactionType.expense ? '餐饮' : '工资收入'; icon = selectedType == TransactionType.expense ? '🍔' : '💰'; })),
-            ]),
-            const SizedBox(height: 12),
-            TextField(controller: amountController, autofocus: true, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '金额', prefixText: '¥ ', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(initialValue: category, decoration: const InputDecoration(labelText: '类别', border: OutlineInputBorder()), items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text('${entry.value} ${entry.key}'))).toList(), onChanged: (value) => setSheetState(() { category = value!; icon = categories[category]!; })),
-            const SizedBox(height: 12),
-            TextField(controller: noteController, decoration: const InputDecoration(labelText: '备注', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async {
-              final amount = double.tryParse(amountController.text.trim());
-              if (amount == null || amount <= 0) return;
-              await _transactionRepository.insertTransaction(TransactionModel(id: 'tx_${DateTime.now().microsecondsSinceEpoch}', amount: amount, type: selectedType, categoryId: category, categoryName: category, categoryIcon: icon, date: selectedDate, note: noteController.text.trim()));
-              if (sheetContext.mounted) Navigator.pop(sheetContext);
-            }, child: const Text('保存到本地'))),
-          ]),
-        );
-      }),
+      builder: (sheetContext) => _TransactionSheet(
+        date: date,
+        onSave: (transaction) async {
+          await _transactionRepository.insertTransaction(transaction);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
     );
-    amountController.dispose();
-    noteController.dispose();
     if (mounted) _loadData();
   }
 
@@ -267,5 +241,105 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final controller = TextEditingController();
     await showDialog<void>(context: context, builder: (context) => AlertDialog(title: const Text('恢复 JSON 备份'), content: TextField(controller: controller, maxLines: 8, decoration: const InputDecoration(hintText: '粘贴备份 JSON', border: OutlineInputBorder())), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')), ElevatedButton(onPressed: () async { final success = await _backupRepository.restoreBackupJson(controller.text.trim()); if (context.mounted) Navigator.pop(context); if (success) _loadData(); }, child: const Text('覆盖恢复'))]));
     controller.dispose();
+  }
+}
+
+class _TransactionSheet extends StatefulWidget {
+  final DateTime date;
+  final Future<void> Function(TransactionModel transaction) onSave;
+
+  const _TransactionSheet({required this.date, required this.onSave});
+
+  @override
+  State<_TransactionSheet> createState() => _TransactionSheetState();
+}
+
+class _TransactionSheetState extends State<_TransactionSheet> {
+  final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
+  TransactionType _selectedType = TransactionType.expense;
+  String _category = '餐饮';
+  String _icon = '🍔';
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final categories = _selectedType == TransactionType.expense
+        ? const {'餐饮': '🍔', '交通': '🚌', '购物': '🛍️', '居住': '🏠', '娱乐': '🎮'}
+        : const {'工资收入': '💰', '理财/奖金': '📈'};
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('新增记账明细', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SegmentedButton<TransactionType>(
+                segments: const [
+                  ButtonSegment(value: TransactionType.expense, label: Text('支出')),
+                  ButtonSegment(value: TransactionType.income, label: Text('收入')),
+                ],
+                selected: {_selectedType},
+                onSelectionChanged: (value) => setState(() {
+                  _selectedType = value.first;
+                  _category = _selectedType == TransactionType.expense ? '餐饮' : '工资收入';
+                  _icon = _selectedType == TransactionType.expense ? '🍔' : '💰';
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _amountController,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: '金额', prefixText: '¥ ', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _category,
+            decoration: const InputDecoration(labelText: '类别', border: OutlineInputBorder()),
+            items: categories.entries.map((entry) => DropdownMenuItem(value: entry.key, child: Text('${entry.value} ${entry.key}'))).toList(),
+            onChanged: (value) => setState(() {
+              _category = value!;
+              _icon = categories[_category]!;
+            }),
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: _noteController, decoration: const InputDecoration(labelText: '备注', border: OutlineInputBorder())),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                final amount = double.tryParse(_amountController.text.trim());
+                if (amount == null || amount <= 0) return;
+                await widget.onSave(TransactionModel(
+                  id: 'tx_${DateTime.now().microsecondsSinceEpoch}',
+                  amount: amount,
+                  type: _selectedType,
+                  categoryId: _category,
+                  categoryName: _category,
+                  categoryIcon: _icon,
+                  date: widget.date,
+                  note: _noteController.text.trim(),
+                ));
+              },
+              child: const Text('保存到本地'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
