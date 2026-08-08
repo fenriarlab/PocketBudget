@@ -178,10 +178,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             _selectedDate = DateTime(month.year, month.month, 1);
           }),
           onDateSelected: (date) => setState(() => _selectedDate = date),
-          onDelete: (transaction) async {
-            await _transactionRepository.deleteTransaction(transaction.id);
-            _loadData();
-          },
+          onDelete: _deleteTransaction,
           onEdit: _showEditTransactionSheet,
           onAdd: _showTransactionSheet,
         );
@@ -202,7 +199,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (mounted) _loadData();
   }
 
+  Future<void> _deleteTransaction(TransactionModel transaction) async {
+    if (transaction.id.startsWith('tx_savings_')) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('存钱支出请在计划页的流水明细中删除')));
+      return;
+    }
+    await _transactionRepository.deleteTransaction(transaction.id);
+    if (mounted) _loadData();
+  }
+
   Future<void> _showEditTransactionSheet(TransactionModel transaction) async {
+    if (transaction.id.startsWith('tx_savings_')) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('存钱支出请在计划页的流水明细中编辑')));
+      return;
+    }
     await _showBottomSheet<void>(
       isScrollControlled: true,
       builder: (sheetContext) => _TransactionSheet(

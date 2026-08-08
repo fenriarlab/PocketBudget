@@ -17,7 +17,7 @@ class BackupRepository {
 
     final backupMap = {
       'app': 'PocketBudget',
-      'version': 1,
+      'version': 2,
       'exported_at': DateTime.now().toIso8601String(),
       'data': {
         'categories': categories,
@@ -47,11 +47,15 @@ class BackupRepository {
         await txn.delete('savings_logs');
         await txn.delete('budgets');
 
+        final transactionIds = <String>{};
+
         // 还原交易记录
         if (data.containsKey('transactions')) {
           final txs = data['transactions'] as List<dynamic>;
           for (var item in txs) {
-            await txn.insert('transactions', Map<String, dynamic>.from(item as Map));
+            final transaction = Map<String, dynamic>.from(item as Map);
+            transactionIds.add(transaction['id'] as String);
+            await txn.insert('transactions', transaction);
           }
         }
 
@@ -67,7 +71,13 @@ class BackupRepository {
         if (data.containsKey('savings_logs')) {
           final logs = data['savings_logs'] as List<dynamic>;
           for (var item in logs) {
-            await txn.insert('savings_logs', Map<String, dynamic>.from(item as Map));
+            final log = Map<String, dynamic>.from(item as Map);
+            final logId = log['id'] as String;
+            final inferredTransactionId = 'tx_savings_$logId';
+            final linkedTransactionId = log['linked_transaction_id'] as String? ?? (transactionIds.contains(inferredTransactionId) ? inferredTransactionId : null);
+            log['linked_transaction_id'] = linkedTransactionId;
+            log['deduct_from_budget'] = log['deduct_from_budget'] ?? (linkedTransactionId == null ? 0 : 1);
+            await txn.insert('savings_logs', log);
           }
         }
 
