@@ -80,7 +80,7 @@ class TransactionsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.45)),
+          boxShadow: _surfaceShadow(context),
         ),
         child: Column(
           children: [
@@ -106,7 +106,12 @@ class TransactionsScreen extends StatelessWidget {
             onDoubleTap: () => onAdd(date),
             child: Container(
               margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(color: _heatColor(context, expense), borderRadius: BorderRadius.circular(8), border: Border.all(color: selected ? AppColors.primary : Colors.transparent, width: 1.5)),
+              decoration: BoxDecoration(
+                color: _heatColor(context, expense),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: selected ? AppColors.primary : Colors.transparent, width: 1.5),
+                boxShadow: _dateCellShadow(context, selected),
+              ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Text('${date.day}', style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
                 if (privacyHidden && (expense > 0 || income > 0)) const Text('****', style: TextStyle(fontSize: 8, color: AppColors.textMuted))
@@ -197,5 +202,15 @@ class TransactionsScreen extends StatelessWidget {
     if (expense == 0) return Theme.of(context).colorScheme.surface;
     final ratio = dailyQuota > 0 ? expense / dailyQuota : 1.0;
     return PressureLevelDetails.fromRatio(ratio).color.withValues(alpha: 0.28);
+  }
+
+  List<BoxShadow> _surfaceShadow(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return [BoxShadow(color: isDark ? Colors.black38 : const Color(0x18000000), blurRadius: 10, offset: const Offset(0, 3))];
+  }
+
+  List<BoxShadow> _dateCellShadow(BuildContext context, bool selected) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return [BoxShadow(color: isDark ? Colors.black26 : const Color(0x14000000), blurRadius: selected ? 5 : 3, offset: const Offset(0, 1))];
   }
 }

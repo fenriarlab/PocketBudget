@@ -90,8 +90,9 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
         ),
         cardTheme: CardThemeData(
           color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE8EBF0))),
+          elevation: 1,
+          shadowColor: const Color(0x24000000),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
       darkTheme: ThemeData(
@@ -140,11 +141,9 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
         ),
         cardTheme: CardThemeData(
           color: AppColors.darkSurface,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.divider, width: 1),
-          ),
+          elevation: 1,
+          shadowColor: Colors.black54,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
       home: HomeDashboardScreen(themeMode: _themeMode, onThemeModeChanged: _setThemeMode),

@@ -157,7 +157,13 @@ class _MonthlySummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.black38 : const Color(0x18000000),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
       children: [
@@ -309,7 +315,17 @@ class _BudgetCard extends StatelessWidget {
     final progress = monthlyBudget > 0 ? (monthlyExpense / monthlyBudget).clamp(0.0, 1.0) : 0.0;
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.black38 : const Color(0x18000000),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('本月剩余可用预算 ($period)', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
         const SizedBox(height: 8),
