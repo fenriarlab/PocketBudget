@@ -38,28 +38,25 @@ class SavingsRepository {
       if (maps.isEmpty) return;
 
       final goal = SavingsGoalModel.fromMap(maps.first);
-      final linkedTransactionId = deductFromBudget && log.amount > 0 ? 'tx_savings_${log.id}' : null;
+      const linkedTransactionId = null;
       final persistedLog = log.toMap()
-        ..['deduct_from_budget'] = linkedTransactionId == null ? 0 : 1
+        ..['deduct_from_budget'] = deductFromBudget && log.amount > 0 ? 1 : 0
         ..['linked_transaction_id'] = linkedTransactionId;
       await txn.insert('savings_logs', persistedLog);
+
+      if (deductFromBudget && log.amount > 0) {
+        await txn.insert('budget_allocations', {
+          'id': 'allocation_${log.id}',
+          'period': '${log.createdAt.year}-${log.createdAt.month.toString().padLeft(2, '0')}',
+          'savings_log_id': log.id,
+          'allocated_amount': log.amount,
+          'created_at': log.createdAt.millisecondsSinceEpoch,
+        });
+      }
 
       final newCurrent = (goal.currentAmount + log.amount).clamp(0.0, double.infinity);
       await txn.update('savings_goals', {'current_amount': newCurrent}, where: 'id = ?', whereArgs: [log.goalId]);
 
-      if (linkedTransactionId != null) {
-        final tx = TransactionModel(
-          id: linkedTransactionId,
-          amount: log.amount,
-          type: TransactionType.expense,
-          categoryId: 'cat_savings',
-          categoryName: '强迫存钱',
-          categoryIcon: '🎯',
-          date: log.createdAt,
-          note: "存入【${goal.title}】${log.note != null && log.note!.isNotEmpty ? ' (${log.note})' : ''}",
-        );
-        await txn.insert('transactions', tx.toMap());
-      }
     });
   }
 
@@ -75,6 +72,7 @@ class SavingsRepository {
       if (transactionId != null) {
         await txn.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
       }
+      await txn.delete('budget_allocations', where: 'savings_log_id = ?', whereArgs: [id]);
       await txn.delete('savings_logs', where: 'id = ?', whereArgs: [id]);
 
       final totals = await txn.rawQuery('SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?', [goalId]);
@@ -103,6 +101,17 @@ class SavingsRepository {
         ..['deduct_from_budget'] = linkedTransactionId == null ? 0 : 1
         ..['linked_transaction_id'] = linkedTransactionId;
       await txn.update('savings_logs', persistedLog, where: 'id = ?', whereArgs: [log.id]);
+
+      await txn.delete('budget_allocations', where: 'savings_log_id = ?', whereArgs: [log.id]);
+      if (deductFromBudget && log.amount > 0) {
+        await txn.insert('budget_allocations', {
+          'id': 'allocation_${log.id}',
+          'period': '${log.createdAt.year}-${log.createdAt.month.toString().padLeft(2, '0')}',
+          'savings_log_id': log.id,
+          'allocated_amount': log.amount,
+          'created_at': log.createdAt.millisecondsSinceEpoch,
+        });
+      }
 
       if (existing.linkedTransactionId != null && existing.linkedTransactionId != linkedTransactionId) {
         await txn.delete('transactions', where: 'id = ?', whereArgs: [existing.linkedTransactionId]);
@@ -134,6 +143,7 @@ class SavingsRepository {
           await txn.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
         }
       }
+      await txn.delete('budget_allocations', where: 'savings_log_id IN (SELECT id FROM savings_logs WHERE goal_id = ?)', whereArgs: [id]);
       await txn.delete('savings_logs', where: 'goal_id = ?', whereArgs: [id]);
       await txn.delete('savings_goals', where: 'id = ?', whereArgs: [id]);
     });

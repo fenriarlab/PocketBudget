@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _createDB,
       onUpgrade: _onUpgradeDB,
     );
@@ -66,7 +66,8 @@ class DatabaseHelper {
         target_amount $numType,
         current_amount $numType DEFAULT 0,
         target_date $intType,
-        created_at $intType
+        created_at $intType,
+        status TEXT NOT NULL DEFAULT 'active'
       )
     ''');
 
@@ -93,6 +94,16 @@ class DatabaseHelper {
 
     await db.execute('CREATE INDEX savings_logs_goal_created_idx ON savings_logs(goal_id, created_at DESC)');
     await db.execute('CREATE UNIQUE INDEX savings_logs_linked_transaction_idx ON savings_logs(linked_transaction_id) WHERE linked_transaction_id IS NOT NULL');
+    await db.execute('''
+      CREATE TABLE budget_allocations (
+        id $idType,
+        period $textType,
+        savings_log_id $textType UNIQUE,
+        allocated_amount $numType,
+        created_at $intType
+      )
+    ''');
+    await db.execute('CREATE INDEX budget_allocations_period_idx ON budget_allocations(period)');
 
     // 初始化默认分类
     await _insertDefaultCategories(db);
@@ -117,6 +128,50 @@ class DatabaseHelper {
       // Version 3 databases may already exist while missing columns from the
       // previous migration, so inspect the table instead of trusting only the version.
       await _ensureSavingsLogSchema(db, backfillLinks: true);
+    }
+    if (oldVersion < 5) {
+      await _ensureSavingsGoalSchema(db);
+      await _migrateBudgetAllocations(db);
+    }
+  }
+
+  Future<void> _ensureSavingsGoalSchema(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(savings_goals)');
+    final columnNames = columns.map((column) => column['name'] as String).toSet();
+    if (!columnNames.contains('status')) {
+      await db.execute("ALTER TABLE savings_goals ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+    }
+  }
+
+  Future<void> _migrateBudgetAllocations(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS budget_allocations (
+        id TEXT PRIMARY KEY,
+        period TEXT NOT NULL,
+        savings_log_id TEXT NOT NULL UNIQUE,
+        allocated_amount REAL NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX IF NOT EXISTS budget_allocations_period_idx ON budget_allocations(period)');
+
+    final logs = await db.query('savings_logs', where: 'deduct_from_budget = 1 AND amount > 0');
+    for (final log in logs) {
+      final logId = log['id'] as String;
+      final createdAt = DateTime.fromMillisecondsSinceEpoch(log['created_at'] as int);
+      await db.insert('budget_allocations', {
+        'id': 'allocation_$logId',
+        'period': '${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}',
+        'savings_log_id': logId,
+        'allocated_amount': log['amount'],
+        'created_at': log['created_at'],
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+      final linkedId = log['linked_transaction_id'] as String?;
+      if (linkedId != null) {
+        await db.delete('transactions', where: 'id = ?', whereArgs: [linkedId]);
+      }
+      await db.update('savings_logs', {'deduct_from_budget': 0, 'linked_transaction_id': null}, where: 'id = ?', whereArgs: [logId]);
     }
   }
 

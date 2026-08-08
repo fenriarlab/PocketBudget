@@ -1,3 +1,5 @@
+enum SavingsGoalStatus { active, archived }
+
 class SavingsGoalModel {
   final String id;
   final String title;
@@ -5,6 +7,7 @@ class SavingsGoalModel {
   final double currentAmount;
   final DateTime targetDate;
   final DateTime createdAt;
+  final SavingsGoalStatus status;
 
   SavingsGoalModel({
     required this.id,
@@ -13,6 +16,7 @@ class SavingsGoalModel {
     this.currentAmount = 0.0,
     required this.targetDate,
     required this.createdAt,
+    this.status = SavingsGoalStatus.active,
   });
 
   double get progressPercentage {
@@ -37,6 +41,7 @@ class SavingsGoalModel {
       'current_amount': currentAmount,
       'target_date': targetDate.millisecondsSinceEpoch,
       'created_at': createdAt.millisecondsSinceEpoch,
+      'status': status.name,
     };
   }
 
@@ -48,6 +53,7 @@ class SavingsGoalModel {
       currentAmount: (map['current_amount'] as num).toDouble(),
       targetDate: DateTime.fromMillisecondsSinceEpoch(map['target_date'] as int),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
+      status: map['status'] == SavingsGoalStatus.archived.name ? SavingsGoalStatus.archived : SavingsGoalStatus.active,
     );
   }
 }

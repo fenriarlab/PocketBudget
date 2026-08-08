@@ -13,6 +13,7 @@ class BackupRepository {
     final transactions = await db.query('transactions');
     final savingsGoals = await db.query('savings_goals');
     final savingsLogs = await db.query('savings_logs');
+    final budgetAllocations = await db.query('budget_allocations');
     final budgets = await db.query('budgets');
 
     final backupMap = {
@@ -24,6 +25,7 @@ class BackupRepository {
         'transactions': transactions,
         'savings_goals': savingsGoals,
         'savings_logs': savingsLogs,
+        'budget_allocations': budgetAllocations,
         'budgets': budgets,
       }
     };
@@ -45,6 +47,7 @@ class BackupRepository {
         await txn.delete('transactions');
         await txn.delete('savings_goals');
         await txn.delete('savings_logs');
+        await txn.delete('budget_allocations');
         await txn.delete('budgets');
 
         final transactionIds = <String>{};
@@ -75,9 +78,26 @@ class BackupRepository {
             final logId = log['id'] as String;
             final inferredTransactionId = 'tx_savings_$logId';
             final linkedTransactionId = log['linked_transaction_id'] as String? ?? (transactionIds.contains(inferredTransactionId) ? inferredTransactionId : null);
-            log['linked_transaction_id'] = linkedTransactionId;
+            log['linked_transaction_id'] = null;
             log['deduct_from_budget'] = log['deduct_from_budget'] ?? (linkedTransactionId == null ? 0 : 1);
             await txn.insert('savings_logs', log);
+            if (linkedTransactionId != null) {
+              await txn.insert('budget_allocations', {
+                'id': 'allocation_$logId',
+                'period': _periodFromTimestamp(log['created_at'] as int),
+                'savings_log_id': logId,
+                'allocated_amount': log['amount'],
+                'created_at': log['created_at'],
+              }, conflictAlgorithm: ConflictAlgorithm.replace);
+              await txn.delete('transactions', where: 'id = ?', whereArgs: [linkedTransactionId]);
+            }
+          }
+        }
+
+        if (data.containsKey('budget_allocations')) {
+          final allocations = data['budget_allocations'] as List<dynamic>;
+          for (final item in allocations) {
+            await txn.insert('budget_allocations', Map<String, dynamic>.from(item as Map), conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
 
@@ -94,5 +114,10 @@ class BackupRepository {
     } catch (e) {
       return false;
     }
+  }
+
+  String _periodFromTimestamp(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}';
   }
 }
