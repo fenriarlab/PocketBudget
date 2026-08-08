@@ -57,6 +57,13 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
         scaffoldBackgroundColor: const Color(0xFFF7F7F3),
         colorScheme: const ColorScheme.light(primary: AppColors.primary, surface: Colors.white, onSurface: AppColors.lightTextPrimary, onSurfaceVariant: AppColors.lightTextSecondary),
         fontFamily: 'Noto Sans CJK SC',
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.lightTextPrimary,
+          elevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.lightTextPrimary),
+        ),
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: AppColors.lightTextPrimary),
           bodyMedium: TextStyle(color: AppColors.lightTextPrimary),
@@ -84,7 +91,7 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFE4E6EB))),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Color(0xFFE8EBF0))),
         ),
       ),
       darkTheme: ThemeData(
