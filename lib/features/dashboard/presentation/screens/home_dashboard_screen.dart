@@ -44,7 +44,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   DateTime _selectedDate = DateTime.now();
   List<TransactionModel> _transactions = [];
   List<SavingsGoalModel> _goals = [];
-  double _monthlyBudget = 5000;
+  double? _monthlyBudget;
   double _monthlyExpense = 0;
   double _monthlyIncome = 0;
   double _monthlyBudgetedSavings = 0;
@@ -105,7 +105,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _monthlyExpense = snapshot.consumption;
       _monthlyIncome = snapshot.income;
       _monthlyBudgetedSavings = snapshot.budgetedSavings;
-      if (budget != null) _monthlyBudget = budget.totalBudget;
+      _monthlyBudget = budget?.totalBudget;
       _isLoading = false;
     });
   }
@@ -194,7 +194,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           transactions: _transactions,
           selectedMonth: _selectedMonth,
           selectedDate: _selectedDate,
-          dailyQuota: _monthlyBudget / DateUtils.getDaysInMonth(_selectedMonth.year, _selectedMonth.month),
+          dailyQuota: _monthlyBudget == null ? null : _monthlyBudget! / DateUtils.getDaysInMonth(_selectedMonth.year, _selectedMonth.month),
           onMonthChanged: _changeMonth,
           onDateSelected: (date) => setState(() => _selectedDate = date),
           onDelete: _deleteTransaction,
@@ -263,7 +263,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     await _showBottomSheet<void>(
       isScrollControlled: true,
       builder: (sheetContext) => _BudgetSheet(
-        initialBudget: _monthlyBudget,
+        initialBudget: _monthlyBudget ?? 0,
         onSave: (budget) async {
           await _budgetRepository.setBudget(_currentPeriod, budget);
           if (sheetContext.mounted) Navigator.pop(sheetContext);

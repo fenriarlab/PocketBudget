@@ -7,7 +7,7 @@ import '../../../transactions/data/models/transaction_model.dart';
 import '../../../transactions/presentation/screens/transactions_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
-  final double monthlyBudget;
+  final double? monthlyBudget;
   final double monthlyExpense;
   final double monthlyIncome;
   final double budgetedSavings;
@@ -49,11 +49,11 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final budgetUsed = monthlyExpense + budgetedSavings;
-    final remainingBudget = monthlyBudget - budgetUsed;
+    final remainingBudget = monthlyBudget == null ? null : monthlyBudget! - budgetUsed;
     final now = DateTime.now();
     final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final remainingDays = (daysInMonth - now.day + 1).clamp(1, daysInMonth);
-    final dailyQuota = remainingBudget > 0 ? remainingBudget / remainingDays : 0.0;
+    final dailyQuota = remainingBudget != null && remainingBudget > 0 ? remainingBudget / remainingDays : 0.0;
     final totalSavings = goals.fold<double>(0, (sum, goal) => sum + goal.currentAmount);
     final liquidBalance = monthlyIncome - monthlyExpense;
 
@@ -90,9 +90,9 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('${_amount(dailyQuota)} / 天', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.income)),
+              Text(monthlyBudget == null ? '无预算限制' : '${_amount(dailyQuota)} / 天', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.income)),
               const SizedBox(height: 4),
-              Text('本月还剩 $remainingDays 天，控制每日开销即可保持当前计划。', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              Text(monthlyBudget == null ? '设置月度预算后可获得每日消费建议。' : '本月还剩 $remainingDays 天，控制每日开销即可保持当前计划。', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
             ],
           ),
         ),
@@ -108,7 +108,7 @@ class DashboardScreen extends StatelessWidget {
       ]);
     }
 
-    final progress = monthlyBudget > 0 ? (budgetUsed / monthlyBudget).clamp(0.0, 1.0) : 0.0;
+    final progress = monthlyBudget == null ? 0.0 : (monthlyBudget! > 0 ? (budgetUsed / monthlyBudget!).clamp(0.0, 1.0) : 0.0);
 
     return Column(
       children: [
@@ -120,7 +120,7 @@ class DashboardScreen extends StatelessWidget {
             income: _amount(monthlyIncome),
             balance: _amount(liquidBalance),
             expenseProgress: progress,
-            incomeProgress: monthlyBudget > 0 ? (monthlyIncome / monthlyBudget).clamp(0.0, 1.0) : 0.0,
+            incomeProgress: monthlyBudget == null ? 0.0 : (monthlyBudget! > 0 ? (monthlyIncome / monthlyBudget!).clamp(0.0, 1.0) : 0.0),
           ),
         ),
         Expanded(
@@ -306,8 +306,8 @@ class _AssetBanner extends StatelessWidget {
 
 class _BudgetCard extends StatelessWidget {
   final String period;
-  final double remainingBudget;
-  final double monthlyBudget;
+  final double? remainingBudget;
+  final double? monthlyBudget;
   final double monthlyExpense;
   final String Function(double) amount;
 
@@ -315,7 +315,7 @@ class _BudgetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = monthlyBudget > 0 ? (monthlyExpense / monthlyBudget).clamp(0.0, 1.0) : 0.0;
+    final progress = monthlyBudget == null ? null : (monthlyBudget! > 0 ? (monthlyExpense / monthlyBudget!).clamp(0.0, 1.0) : 0.0);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -330,14 +330,16 @@ class _BudgetCard extends StatelessWidget {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('本月剩余可用预算 ($period)', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
+        Text(monthlyBudget == null ? '本月预算 ($period)' : '本月剩余可用预算 ($period)', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
         const SizedBox(height: 8),
-        Text(amount(remainingBudget), style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: remainingBudget >= 0 ? Theme.of(context).colorScheme.onSurface : AppColors.expense)),
-        const SizedBox(height: 16),
-        ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35), color: progress > 0.9 ? AppColors.expense : AppColors.primaryLight)),
+        Text(monthlyBudget == null ? '无预算限制' : amount(remainingBudget!), style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: remainingBudget == null || remainingBudget! >= 0 ? Theme.of(context).colorScheme.onSurface : AppColors.expense)),
+        if (progress != null) ...[
+          const SizedBox(height: 16),
+          ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, minHeight: 8, backgroundColor: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.35), color: progress > 0.9 ? AppColors.expense : AppColors.primaryLight)),
+        ],
         const SizedBox(height: 12),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('预算: ${amount(monthlyBudget)}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
+          Text(monthlyBudget == null ? '预算：未设置' : '预算: ${amount(monthlyBudget!)}', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
           Text('已支出: ${amount(monthlyExpense)}', style: const TextStyle(color: AppColors.expense, fontSize: 12, fontWeight: FontWeight.bold)),
         ]),
       ]),

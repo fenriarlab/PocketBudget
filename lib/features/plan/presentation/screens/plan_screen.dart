@@ -9,7 +9,7 @@ class PlanScreen extends StatelessWidget {
   final List<SavingsGoalModel> goals;
   final bool privacyHidden;
   final String currentPeriod;
-  final double monthlyBudget;
+  final double? monthlyBudget;
   final double monthlyExpense;
   final double monthlyBudgetedSavings;
   final VoidCallback onEditBudget;
@@ -38,8 +38,8 @@ class PlanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final budgetUsed = monthlyExpense + monthlyBudgetedSavings;
-    final remaining = monthlyBudget - budgetUsed;
-    final progress = monthlyBudget > 0 ? (budgetUsed / monthlyBudget).clamp(0.0, 1.0) : 0.0;
+    final remaining = monthlyBudget == null ? null : monthlyBudget! - budgetUsed;
+    final progress = monthlyBudget == null ? null : (monthlyBudget! > 0 ? (budgetUsed / monthlyBudget!).clamp(0.0, 1.0) : 0.0);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -68,10 +68,10 @@ class PlanScreen extends StatelessWidget {
 
 class _BudgetPlanCard extends StatelessWidget {
   final String period;
-  final double budget;
+  final double? budget;
   final double expense;
-  final double remaining;
-  final double progress;
+  final double? remaining;
+  final double? progress;
   final String Function(double) amount;
   final VoidCallback onEdit;
 
@@ -94,14 +94,17 @@ class _BudgetPlanCard extends StatelessWidget {
           ]),
           const SizedBox(height: 14),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            _BudgetMetric(label: '预算', value: amount(budget), color: colorScheme.onSurface),
+            _BudgetMetric(label: '预算', value: budget == null ? '无预算限制' : amount(budget!), color: colorScheme.onSurface),
             _BudgetMetric(label: '已使用', value: amount(expense), color: AppColors.expense),
-            _BudgetMetric(label: '剩余', value: amount(remaining), color: remaining >= 0 ? AppColors.income : AppColors.expense),
+            _BudgetMetric(label: '剩余', value: remaining == null ? '不适用' : amount(remaining!), color: remaining == null || remaining! >= 0 ? AppColors.income : AppColors.expense),
           ]),
-          const SizedBox(height: 12),
-          ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, minHeight: 8, color: progress >= 1 ? AppColors.expense : colorScheme.primary, backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.3))),
-          const SizedBox(height: 6),
-          Text('本月已使用 ${(progress * 100).round()}%', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+          if (progress != null) ...[
+            const SizedBox(height: 12),
+            ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, minHeight: 8, color: progress! >= 1 ? AppColors.expense : colorScheme.primary, backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.3))),
+            const SizedBox(height: 6),
+            Text('本月已使用 ${(progress! * 100).round()}%', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
+          ] else
+            Text('当前未设置月度预算，消费不会受到预算上限限制。', style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
         ]),
       ),
     );
