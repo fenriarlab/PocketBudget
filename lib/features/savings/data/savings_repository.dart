@@ -31,7 +31,23 @@ class SavingsRepository {
 
   Future<List<SavingsGoalModel>> getAllGoals() async {
     final db = await _dbHelper.database;
-    final maps = await db.query('savings_goals', orderBy: 'created_at DESC');
+    final maps = await db.query(
+      'savings_goals',
+      where: 'status = ?',
+      whereArgs: [SavingsGoalStatus.active.name],
+      orderBy: 'created_at DESC',
+    );
+    return maps.map((m) => SavingsGoalModel.fromMap(m)).toList();
+  }
+
+  Future<List<SavingsGoalModel>> getArchivedGoals() async {
+    final db = await _dbHelper.database;
+    final maps = await db.query(
+      'savings_goals',
+      where: 'status = ?',
+      whereArgs: [SavingsGoalStatus.archived.name],
+      orderBy: 'created_at DESC',
+    );
     return maps.map((m) => SavingsGoalModel.fromMap(m)).toList();
   }
 
@@ -171,8 +187,41 @@ class SavingsRepository {
   }
 
   Future<void> deleteGoal(String id) async {
+    await purgeEmptyGoal(id);
+  }
+
+  Future<void> archiveGoal(String id) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'savings_goals',
+      {'status': SavingsGoalStatus.archived.name},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> restoreGoal(String id) async {
+    final db = await _dbHelper.database;
+    await db.update(
+      'savings_goals',
+      {'status': SavingsGoalStatus.active.name},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> purgeEmptyGoal(String id) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
+      final logCount = Sqflite.firstIntValue(await txn.rawQuery(
+            'SELECT COUNT(*) FROM savings_logs WHERE goal_id = ?',
+            [id],
+          )) ??
+          0;
+      if (logCount > 0) {
+        throw StateError('Goals with savings history must be archived');
+      }
+
       final logs = await txn.query('savings_logs',
           columns: ['linked_transaction_id'],
           where: 'goal_id = ?',
