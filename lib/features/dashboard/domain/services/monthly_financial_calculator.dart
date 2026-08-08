@@ -1,5 +1,6 @@
 import '../../../../core/utils/month_period.dart';
 import '../../../budget/data/models/budget_model.dart';
+import '../../../budget/data/models/budget_allocation_model.dart';
 import '../../../savings/data/models/savings_log_model.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../models/monthly_financial_snapshot.dart';
@@ -11,6 +12,7 @@ class MonthlyFinancialCalculator {
     required MonthPeriod period,
     required Iterable<TransactionModel> transactions,
     required Iterable<SavingsLogModel> savingsLogs,
+    Iterable<BudgetAllocationModel>? budgetAllocations,
     required BudgetModel? budget,
     DateTime? today,
   }) {
@@ -30,7 +32,12 @@ class MonthlyFinancialCalculator {
     for (final log in savingsLogs) {
       if (!period.contains(log.createdAt)) continue;
       netSavings += log.amount;
-      if (log.amount > 0 && log.deductFromBudget) budgetedSavings += log.amount;
+      if (budgetAllocations == null && log.amount > 0 && log.deductFromBudget) budgetedSavings += log.amount;
+    }
+    if (budgetAllocations != null) {
+      for (final allocation in budgetAllocations) {
+        if (allocation.period == period.key) budgetedSavings += allocation.allocatedAmount;
+      }
     }
 
     final budgetValue = budget?.totalBudget;

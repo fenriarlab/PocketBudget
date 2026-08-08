@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_budget/core/utils/month_period.dart';
 import 'package:pocket_budget/features/budget/data/models/budget_model.dart';
+import 'package:pocket_budget/features/budget/data/models/budget_allocation_model.dart';
 import 'package:pocket_budget/features/dashboard/domain/services/monthly_financial_calculator.dart';
 import 'package:pocket_budget/features/savings/data/models/savings_log_model.dart';
 import 'package:pocket_budget/features/transactions/data/models/transaction_model.dart';
@@ -55,6 +56,21 @@ void main() {
     expect(snapshot.remainingBudget, isNull);
     expect(snapshot.dailyAllowance, isNull);
     expect(snapshot.dailyPressureBaseline, isNull);
+  });
+
+  test('prefers explicit budget allocations over legacy log flags', () {
+    final snapshot = calculator.calculate(
+      period: period,
+      transactions: const [],
+      savingsLogs: [log('save', 1000, DateTime(2026, 8, 4), deduct: true)],
+      budgetAllocations: [
+        BudgetAllocationModel(id: 'allocation-save', period: '2026-08', savingsLogId: 'save', allocatedAmount: 600, createdAt: DateTime(2026, 8, 4)),
+      ],
+      budget: BudgetModel(period: period.key, totalBudget: 2000),
+    );
+
+    expect(snapshot.budgetedSavings, 600);
+    expect(snapshot.budgetUsed, 600);
   });
 
   test('does not show dynamic daily allowance for a historical month', () {

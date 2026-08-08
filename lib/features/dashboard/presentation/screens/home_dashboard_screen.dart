@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/month_period.dart';
 import '../../../analysis/presentation/screens/analysis_screen.dart';
 import '../../../backup/data/backup_repository.dart';
+import '../../../budget/data/budget_allocation_repository.dart';
 import '../../../budget/data/budget_repository.dart';
 import '../../domain/services/monthly_financial_calculator.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
@@ -32,6 +33,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final _transactionRepository = TransactionRepository();
   final _savingsRepository = SavingsRepository();
   final _budgetRepository = BudgetRepository();
+  final _budgetAllocationRepository = BudgetAllocationRepository();
   final _backupRepository = BackupRepository();
   final _financialCalculator = const MonthlyFinancialCalculator();
 
@@ -92,10 +94,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final goals = await _savingsRepository.getAllGoals();
     final savingsLogs = await _savingsRepository.getAllLogs();
     final budget = await _budgetRepository.getBudget(_currentPeriod);
+    final budgetAllocations = await _budgetAllocationRepository.getByPeriod(_currentPeriod);
     final snapshot = _financialCalculator.calculate(
       period: MonthPeriod.parse(_currentPeriod),
       transactions: transactions,
       savingsLogs: savingsLogs,
+      budgetAllocations: budgetAllocations,
       budget: budget,
     );
     if (!mounted) return;
