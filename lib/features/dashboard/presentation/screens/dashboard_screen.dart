@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
@@ -108,6 +109,7 @@ class DashboardScreen extends StatelessWidget {
 
     return Column(
       children: [
+        _MonthToolbar(selectedMonth: selectedMonth!, onMonthChanged: onMonthChanged!),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: _MonthlySummaryCard(
@@ -175,6 +177,48 @@ class _MonthlySummaryCard extends StatelessWidget {
             ],
           ),
       ],
+      ),
+    );
+  }
+}
+
+class _MonthToolbar extends StatelessWidget {
+  final DateTime selectedMonth;
+  final ValueChanged<DateTime> onMonthChanged;
+
+  const _MonthToolbar({required this.selectedMonth, required this.onMonthChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isCurrentMonth = selectedMonth.year == now.year && selectedMonth.month == now.month;
+    return Container(
+      color: Theme.of(context).colorScheme.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(icon: const Icon(Icons.chevron_left), onPressed: () => onMonthChanged(DateTime(selectedMonth.year, selectedMonth.month - 1))),
+          InkWell(
+            onTap: () async {
+              final picked = await showDatePicker(context: context, initialDate: selectedMonth, firstDate: DateTime(2020), lastDate: DateTime(2030, 12, 31), helpText: '选择月份');
+              if (picked != null) onMonthChanged(DateTime(picked.year, picked.month));
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(DateFormat('yyyy 年 MM 月').format(selectedMonth), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 4),
+                const Icon(Icons.calendar_month_outlined, size: 18),
+              ]),
+            ),
+          ),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            if (!isCurrentMonth) TextButton(onPressed: () => onMonthChanged(DateTime(now.year, now.month)), child: const Text('今天')),
+            IconButton(icon: const Icon(Icons.chevron_right), onPressed: () => onMonthChanged(DateTime(selectedMonth.year, selectedMonth.month + 1))),
+          ]),
+        ],
       ),
     );
   }
