@@ -48,13 +48,31 @@ class SavingsGoalsSection extends StatelessWidget {
     final completed = goal.currentAmount >= goal.targetAmount;
     final remainingDays = goal.remainingDays;
     final dailyNeeded = remainingDays > 0 ? goal.remainingAmount / remainingDays : 0.0;
+    final expired = !completed && remainingDays == 0;
+    final statusLabel = completed ? '已完成' : expired ? '已到期' : '进行中';
+    final statusColor = completed ? AppColors.income : expired ? AppColors.warning : colorScheme.primary;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: completed ? AppColors.income : colorScheme.outlineVariant)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.black38 : const Color(0x18000000),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(goal.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface), overflow: TextOverflow.ellipsis)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+            child: Text(statusLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: statusColor)),
+          ),
           PopupMenuButton<String>(
             tooltip: '目标操作',
             onSelected: (value) async {
@@ -71,6 +89,10 @@ class SavingsGoalsSection extends StatelessWidget {
         if (!completed && remainingDays > 0) ...[
           const SizedBox(height: 10),
           Text('按照当前目标，每日存入 ${_amount(dailyNeeded)} 可按时完成', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
+        ],
+        if (expired) ...[
+          const SizedBox(height: 10),
+          Text('目标日期已到，仍差 ${_amount(goal.remainingAmount)}', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         ],
         const SizedBox(height: 12),
         Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
