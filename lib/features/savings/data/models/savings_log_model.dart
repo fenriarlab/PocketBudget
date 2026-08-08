@@ -4,6 +4,8 @@ class SavingsLogModel {
   final double amount; // Positive = Deposit (+), Negative = Withdraw (-)
   final String? note;
   final DateTime createdAt;
+  final bool deductFromBudget;
+  final String? linkedTransactionId;
 
   SavingsLogModel({
     required this.id,
@@ -11,6 +13,8 @@ class SavingsLogModel {
     required this.amount,
     this.note,
     required this.createdAt,
+    this.deductFromBudget = false,
+    this.linkedTransactionId,
   });
 
   bool get isDeposit => amount >= 0;
@@ -22,6 +26,8 @@ class SavingsLogModel {
       'amount': amount,
       'note': note,
       'created_at': createdAt.millisecondsSinceEpoch,
+      'deduct_from_budget': deductFromBudget ? 1 : 0,
+      'linked_transaction_id': linkedTransactionId,
     };
   }
 
@@ -32,6 +38,8 @@ class SavingsLogModel {
       amount: (map['amount'] as num).toDouble(),
       note: map['note'] as String?,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
+      deductFromBudget: (map['deduct_from_budget'] as num?)?.toInt() == 1,
+      linkedTransactionId: map['linked_transaction_id'] as String?,
     );
   }
 }

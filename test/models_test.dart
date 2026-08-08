@@ -54,4 +54,28 @@ void main() {
     expect(log.isDeposit, isFalse);
     expect(SavingsLogModel.fromMap(log.toMap()).amount, -100);
   });
+
+  test('savings log preserves budget linkage and reads legacy maps', () {
+    final log = SavingsLogModel(
+      goalId: 'goal-1',
+      id: 'log-1',
+      amount: 100,
+      createdAt: DateTime(2026, 8, 1),
+      deductFromBudget: true,
+      linkedTransactionId: 'tx_savings_log-1',
+    );
+
+    final restored = SavingsLogModel.fromMap(log.toMap());
+    final legacy = SavingsLogModel.fromMap({
+      'id': 'legacy-1',
+      'goal_id': 'goal-1',
+      'amount': 50,
+      'created_at': DateTime(2026, 8, 1).millisecondsSinceEpoch,
+    });
+
+    expect(restored.deductFromBudget, isTrue);
+    expect(restored.linkedTransactionId, 'tx_savings_log-1');
+    expect(legacy.deductFromBudget, isFalse);
+    expect(legacy.linkedTransactionId, isNull);
+  });
 }

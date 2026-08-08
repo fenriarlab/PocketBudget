@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgradeDB,
     );
@@ -77,7 +77,9 @@ class DatabaseHelper {
         goal_id $textType,
         amount $numType,
         note TEXT,
-        created_at $intType
+        created_at $intType,
+        deduct_from_budget INTEGER NOT NULL DEFAULT 0,
+        linked_transaction_id TEXT
       )
     ''');
 
@@ -88,6 +90,9 @@ class DatabaseHelper {
         total_budget $numType
       )
     ''');
+
+    await db.execute('CREATE INDEX savings_logs_goal_created_idx ON savings_logs(goal_id, created_at DESC)');
+    await db.execute('CREATE UNIQUE INDEX savings_logs_linked_transaction_idx ON savings_logs(linked_transaction_id) WHERE linked_transaction_id IS NOT NULL');
 
     // 初始化默认分类
     await _insertDefaultCategories(db);
@@ -104,6 +109,21 @@ class DatabaseHelper {
           created_at INTEGER NOT NULL
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE savings_logs ADD COLUMN deduct_from_budget INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE savings_logs ADD COLUMN linked_transaction_id TEXT');
+      await db.execute('CREATE INDEX IF NOT EXISTS savings_logs_goal_created_idx ON savings_logs(goal_id, created_at DESC)');
+      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS savings_logs_linked_transaction_idx ON savings_logs(linked_transaction_id) WHERE linked_transaction_id IS NOT NULL');
+
+      final logs = await db.query('savings_logs', columns: ['id']);
+      for (final log in logs) {
+        final transactionId = 'tx_savings_${log['id']}';
+        final matches = await db.query('transactions', columns: ['id'], where: 'id = ?', whereArgs: [transactionId], limit: 1);
+        if (matches.isNotEmpty) {
+          await db.update('savings_logs', {'deduct_from_budget': 1, 'linked_transaction_id': transactionId}, where: 'id = ?', whereArgs: [log['id']]);
+        }
+      }
     }
   }
 

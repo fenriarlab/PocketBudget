@@ -1,12 +1,10 @@
 import '../../../../core/database/database_helper.dart';
 import 'models/savings_goal_model.dart';
 import 'models/savings_log_model.dart';
-import '../../transactions/data/transaction_repository.dart';
 import '../../transactions/data/models/transaction_model.dart';
 
 class SavingsRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
-  final TransactionRepository _txRepo = TransactionRepository();
 
   Future<void> insertGoal(SavingsGoalModel goal) async {
     final db = await _dbHelper.database;
@@ -29,42 +27,47 @@ class SavingsRepository {
     final db = await _dbHelper.database;
 
     await db.transaction((txn) async {
-      // 1. Insert log
-      await txn.insert('savings_logs', log.toMap());
-
-      // 2. Update current_amount in goal
       final maps = await txn.query('savings_goals', where: 'id = ?', whereArgs: [log.goalId]);
-      if (maps.isNotEmpty) {
-        final goal = SavingsGoalModel.fromMap(maps.first);
-        final newCurrent = (goal.currentAmount + log.amount).clamp(0.0, double.infinity);
-        await txn.update(
-          'savings_goals',
-          {'current_amount': newCurrent},
-          where: 'id = ?',
-          whereArgs: [log.goalId],
-        );
+      if (maps.isEmpty) return;
 
-        // 3. If deductFromBudget is true and amount > 0, generate an automatic expense transaction!
-        if (deductFromBudget && log.amount > 0) {
-          final tx = TransactionModel(
-            id: "tx_savings_${log.id}",
-            amount: log.amount,
-            type: TransactionType.expense,
-            categoryId: 'cat_savings',
-            categoryName: '强迫存钱',
-            categoryIcon: '🎯',
-            date: log.createdAt,
-            note: "存入【${goal.title}】${log.note != null && log.note!.isNotEmpty ? ' (${log.note})' : ''}",
-          );
-          await _txRepo.insertTransaction(tx);
-        }
+      final goal = SavingsGoalModel.fromMap(maps.first);
+      final linkedTransactionId = deductFromBudget && log.amount > 0 ? 'tx_savings_${log.id}' : null;
+      final persistedLog = log.toMap()
+        ..['deduct_from_budget'] = linkedTransactionId == null ? 0 : 1
+        ..['linked_transaction_id'] = linkedTransactionId;
+      await txn.insert('savings_logs', persistedLog);
+
+      final newCurrent = (goal.currentAmount + log.amount).clamp(0.0, double.infinity);
+      await txn.update('savings_goals', {'current_amount': newCurrent}, where: 'id = ?', whereArgs: [log.goalId]);
+
+      if (linkedTransactionId != null) {
+        final tx = TransactionModel(
+          id: linkedTransactionId,
+          amount: log.amount,
+          type: TransactionType.expense,
+          categoryId: 'cat_savings',
+          categoryName: '强迫存钱',
+          categoryIcon: '🎯',
+          date: log.createdAt,
+          note: "存入【${goal.title}】${log.note != null && log.note!.isNotEmpty ? ' (${log.note})' : ''}",
+        );
+        await txn.insert('transactions', tx.toMap());
       }
     });
   }
 
   Future<void> deleteGoal(String id) async {
     final db = await _dbHelper.database;
-    await db.delete('savings_goals', where: 'id = ?', whereArgs: [id]);
-    await db.delete('savings_logs', where: 'goal_id = ?', whereArgs: [id]);
+    await db.transaction((txn) async {
+      final logs = await txn.query('savings_logs', columns: ['linked_transaction_id'], where: 'goal_id = ?', whereArgs: [id]);
+      for (final log in logs) {
+        final transactionId = log['linked_transaction_id'] as String?;
+        if (transactionId != null) {
+          await txn.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
+        }
+      }
+      await txn.delete('savings_logs', where: 'goal_id = ?', whereArgs: [id]);
+      await txn.delete('savings_goals', where: 'id = ?', whereArgs: [id]);
+    });
   }
 }
