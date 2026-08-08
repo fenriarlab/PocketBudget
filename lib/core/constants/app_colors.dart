@@ -10,6 +10,11 @@ class AppColors {
   static const Color expense = Color(0xFFFF6B6B);
   static const Color income = Color(0xFF36C98B);
   static const Color warning = Color(0xFFFFB84D);
+  static const Color pressureVeryLow = Color(0xFF65C99A);
+  static const Color pressureLow = Color(0xFFA8D96D);
+  static const Color pressureMedium = Color(0xFFF3B34C);
+  static const Color pressureHigh = Color(0xFFE96A68);
+  static const Color pressureVeryHigh = Color(0xFF9C65D6);
 
   // Backgrounds & Surface (Dark Theme First)
   static const Color darkBackground = Color(0xFF111214); // Primary Background

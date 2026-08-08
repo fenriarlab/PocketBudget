@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../data/models/transaction_model.dart';
+import '../models/pressure_level.dart';
 
 class TransactionsScreen extends StatelessWidget {
   final List<TransactionModel> transactions;
@@ -73,7 +74,7 @@ class TransactionsScreen extends StatelessWidget {
     final isCurrentMonth = now.year == year && now.month == month;
 
     final weekCount = ((firstWeekday + days) / 7).ceil();
-    final calendarHeight = weekCount * 52.0;
+    final calendarHeight = weekCount * 46.0;
 
     return ListView(children: [
       _monthBar(context, year, month, isCurrentMonth, now),
@@ -117,22 +118,15 @@ class TransactionsScreen extends StatelessWidget {
   }
 
   Widget _pressureLegend(BuildContext context) {
-    const levels = [
-      ('很低', Color(0xFF65C99A)),
-      ('偏低', Color(0xFFA8D96D)),
-      ('适中', Color(0xFFF3B34C)),
-      ('偏高', Color(0xFFE96A68)),
-      ('过高', Color(0xFF9C65D6)),
-    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
       child: Row(
         children: [
           Text('压力图例：', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          ...levels.map((level) => Expanded(child: Row(children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: level.$2, shape: BoxShape.circle)),
+          ...PressureLevelDetails.values.map((level) => Expanded(child: Row(children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: level.color, shape: BoxShape.circle)),
             const SizedBox(width: 3),
-            Text(level.$1, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Text(level.label, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ]))),
         ],
       ),
@@ -184,10 +178,10 @@ class TransactionsScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(DateFormat('MM月dd日').format(selectedDate), style: const TextStyle(fontWeight: FontWeight.bold)),
-          TextButton.icon(onPressed: () => onAdd(selectedDate), icon: const Icon(Icons.add, size: 16), label: const Text('补记')),
+          Text(_selectedDateLabel(), style: const TextStyle(fontWeight: FontWeight.bold)),
+          TextButton.icon(onPressed: () => onAdd(selectedDate), icon: const Icon(Icons.add, size: 16), label: const Text('记一笔')),
         ]),
-        Expanded(child: selectedTransactions.isEmpty ? const Center(child: Text('当天暂无记录', style: TextStyle(color: AppColors.textSecondary))) : ListView(children: selectedTransactions.map((transaction) => _transactionTile(context, transaction)).toList())),
+        Expanded(child: selectedTransactions.isEmpty ? const Center(child: Text('当天暂无记录', style: TextStyle(color: AppColors.textSecondary))) : ListView(children: selectedTransactions.map((transaction) => _transactionTile(context, transaction, compactDate: true)).toList())),
       ]),
     );
   }
@@ -209,7 +203,12 @@ class TransactionsScreen extends StatelessWidget {
     if (action == 'delete') onDelete(transaction);
   }
 
-  Widget _transactionTile(BuildContext context, TransactionModel transaction) {
+  String _selectedDateLabel() {
+    const weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    return '${selectedDate.month}月${selectedDate.day}日 ${weekdays[selectedDate.weekday - 1]}';
+  }
+
+  Widget _transactionTile(BuildContext context, TransactionModel transaction, {bool compactDate = false}) {
     final expense = transaction.type == TransactionType.expense;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -218,7 +217,7 @@ class TransactionsScreen extends StatelessWidget {
         child: ListTile(
           leading: CircleAvatar(child: Text(transaction.categoryIcon.isEmpty ? (expense ? '支' : '收') : transaction.categoryIcon)),
           title: Text(transaction.categoryName),
-          subtitle: Text(transaction.note?.isNotEmpty == true ? '${transaction.note} · ${DateFormat('HH:mm').format(transaction.date)}' : DateFormat('yyyy-MM-dd HH:mm').format(transaction.date)),
+          subtitle: Text(transaction.note?.isNotEmpty == true ? '${DateFormat('HH:mm').format(transaction.date)} · ${transaction.note}' : compactDate ? DateFormat('HH:mm').format(transaction.date) : DateFormat('yyyy-MM-dd HH:mm').format(transaction.date)),
           trailing: Text(_amount(transaction.amount, signed: true, expense: expense), style: TextStyle(color: expense ? AppColors.expense : AppColors.income, fontWeight: FontWeight.bold)),
         ),
       ),
@@ -226,10 +225,8 @@ class TransactionsScreen extends StatelessWidget {
   }
 
   Color _heatColor(BuildContext context, double expense) {
-    if (expense == 0) return AppColors.income.withValues(alpha: 0.12);
-    final ratio = dailyQuota > 0 ? expense / dailyQuota : 1;
-    if (ratio <= 0.5) return const Color(0xFFF1C40F).withValues(alpha: 0.4);
-    if (ratio <= 1) return const Color(0xFFE67E22).withValues(alpha: 0.55);
-    return AppColors.expense.withValues(alpha: 0.7);
+    if (expense == 0) return Theme.of(context).colorScheme.surface;
+    final ratio = dailyQuota > 0 ? expense / dailyQuota : 1.0;
+    return PressureLevelDetails.fromRatio(ratio).color.withValues(alpha: 0.28);
   }
 }
