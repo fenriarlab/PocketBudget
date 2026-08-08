@@ -42,5 +42,6 @@ windows/flutter/ephemeral/
 .idea/
 *.iml
 .vscode/
+docs/
 .DS_Store
 Thumbs.db
