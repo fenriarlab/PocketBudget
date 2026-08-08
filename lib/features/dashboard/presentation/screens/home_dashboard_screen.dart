@@ -150,13 +150,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       case 2:
         return AnalysisScreen(
           transactions: _transactions,
-          monthlyBudget: _monthlyBudget,
-          currentPeriod: _currentPeriod,
           privacyHidden: _privacyHidden,
-          onSaveBudget: (budget) async {
-            await _budgetRepository.setBudget(_currentPeriod, budget);
-            _loadData();
-          },
           onExportBackup: _showExportBackup,
           onRestoreBackup: _showRestoreBackup,
         );

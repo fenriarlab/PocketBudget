@@ -5,14 +5,11 @@ import '../../../transactions/data/models/transaction_model.dart';
 
 class AnalysisScreen extends StatelessWidget {
   final List<TransactionModel> transactions;
-  final double monthlyBudget;
-  final String currentPeriod;
   final bool privacyHidden;
-  final ValueChanged<double> onSaveBudget;
   final VoidCallback onExportBackup;
   final VoidCallback onRestoreBackup;
 
-  const AnalysisScreen({super.key, required this.transactions, required this.monthlyBudget, required this.currentPeriod, required this.privacyHidden, required this.onSaveBudget, required this.onExportBackup, required this.onRestoreBackup});
+  const AnalysisScreen({super.key, required this.transactions, required this.privacyHidden, required this.onExportBackup, required this.onRestoreBackup});
 
   String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
 
@@ -23,11 +20,7 @@ class AnalysisScreen extends StatelessWidget {
       if (transaction.type == TransactionType.expense) categories[transaction.categoryName] = (categories[transaction.categoryName] ?? 0) + transaction.amount;
     }
     final total = categories.values.fold<double>(0, (sum, value) => sum + value);
-    final controller = TextEditingController(text: monthlyBudget.toStringAsFixed(0));
-
     return ListView(padding: const EdgeInsets.all(16), children: [
-      _BudgetEditor(period: currentPeriod, controller: controller, onSave: () => onSaveBudget(double.tryParse(controller.text) ?? monthlyBudget)),
-      const SizedBox(height: 16),
       Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('本月消费分类', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
@@ -51,21 +44,4 @@ class AnalysisScreen extends StatelessWidget {
       ]))),
     ]);
   }
-}
-
-class _BudgetEditor extends StatelessWidget {
-  final String period;
-  final TextEditingController controller;
-  final VoidCallback onSave;
-
-  const _BudgetEditor({required this.period, required this.controller, required this.onSave});
-
-  @override
-  Widget build(BuildContext context) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('月度预算设置 ($period)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-    const SizedBox(height: 12),
-    TextField(controller: controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '预算上限', prefixText: '¥ ', border: OutlineInputBorder())),
-    const SizedBox(height: 12),
-    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: onSave, child: const Text('保存配置'))),
-  ])));
 }
