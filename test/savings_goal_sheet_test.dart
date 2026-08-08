@@ -36,4 +36,43 @@ void main() {
     expect(savedGoal?.targetAmount, 5000);
     expect(find.text('新建存钱目标'), findsNothing);
   });
+
+  testWidgets('savings goal sheet shows validation errors for empty input', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SavingsGoalSheet(onSave: (_) async {}),
+      ),
+    ));
+
+    await tester.tap(find.text('创建目标'));
+    await tester.pump();
+
+    expect(find.text('请输入目标名称'), findsOneWidget);
+    expect(find.text('请输入大于 0 的目标金额'), findsOneWidget);
+  });
+
+  testWidgets('withdrawal sheet blocks amounts above the current balance', (tester) async {
+    final goal = SavingsGoalModel(
+      id: 'goal-1',
+      title: '旅行基金',
+      targetAmount: 1000,
+      currentAmount: 100,
+      targetDate: DateTime(2026, 12, 31),
+      createdAt: DateTime(2026, 8, 1),
+    );
+    var saved = false;
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SavingsDepositSheet(goal: goal, isWithdraw: true, onSave: (_, __) async => saved = true),
+      ),
+    ));
+
+    await tester.enterText(find.byType(TextField).first, '101');
+    await tester.tap(find.text('确认提取'));
+    await tester.pump();
+
+    expect(find.text('提取金额不能超过当前余额 ¥100.00'), findsOneWidget);
+    expect(saved, isFalse);
+  });
 }
