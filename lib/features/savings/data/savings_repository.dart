@@ -1,4 +1,5 @@
 import '../../../../core/database/database_helper.dart';
+import 'package:sqflite/sqflite.dart';
 import 'models/savings_goal_model.dart';
 import 'models/savings_log_model.dart';
 import '../../transactions/data/models/transaction_model.dart';
@@ -73,6 +74,47 @@ class SavingsRepository {
       final totals = await txn.rawQuery('SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?', [goalId]);
       final currentAmount = ((totals.first['total'] as num?) ?? 0).toDouble().clamp(0.0, double.infinity);
       await txn.update('savings_goals', {'current_amount': currentAmount}, where: 'id = ?', whereArgs: [goalId]);
+    });
+  }
+
+  Future<void> updateSavingsLog(SavingsLogModel log, {required bool deductFromBudget}) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      final existingRows = await txn.query('savings_logs', where: 'id = ?', whereArgs: [log.id], limit: 1);
+      if (existingRows.isEmpty) return;
+
+      final existing = SavingsLogModel.fromMap(existingRows.first);
+      final goalRows = await txn.query('savings_goals', where: 'id = ?', whereArgs: [log.goalId], limit: 1);
+      if (goalRows.isEmpty) return;
+
+      final totals = await txn.rawQuery('SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ? AND id != ?', [log.goalId, log.id]);
+      final currentAmount = (((totals.first['total'] as num?) ?? 0) + log.amount).toDouble();
+      if (currentAmount < 0) throw StateError('Savings balance cannot be negative');
+
+      final goal = SavingsGoalModel.fromMap(goalRows.first);
+      final linkedTransactionId = deductFromBudget && log.amount > 0 ? existing.linkedTransactionId ?? 'tx_savings_${log.id}' : null;
+      final persistedLog = log.toMap()
+        ..['deduct_from_budget'] = linkedTransactionId == null ? 0 : 1
+        ..['linked_transaction_id'] = linkedTransactionId;
+      await txn.update('savings_logs', persistedLog, where: 'id = ?', whereArgs: [log.id]);
+
+      if (existing.linkedTransactionId != null && existing.linkedTransactionId != linkedTransactionId) {
+        await txn.delete('transactions', where: 'id = ?', whereArgs: [existing.linkedTransactionId]);
+      }
+      if (linkedTransactionId != null) {
+        final tx = TransactionModel(
+          id: linkedTransactionId,
+          amount: log.amount,
+          type: TransactionType.expense,
+          categoryId: 'cat_savings',
+          categoryName: '强迫存钱',
+          categoryIcon: '🎯',
+          date: log.createdAt,
+          note: "存入【${goal.title}】${log.note != null && log.note!.isNotEmpty ? ' (${log.note})' : ''}",
+        );
+        await txn.insert('transactions', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      await txn.update('savings_goals', {'current_amount': currentAmount}, where: 'id = ?', whereArgs: [log.goalId]);
     });
   }
 
