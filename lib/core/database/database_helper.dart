@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgradeDB,
     );
@@ -111,18 +111,37 @@ class DatabaseHelper {
       ''');
     }
     if (oldVersion < 3) {
-      await db.execute('ALTER TABLE savings_logs ADD COLUMN deduct_from_budget INTEGER NOT NULL DEFAULT 0');
-      await db.execute('ALTER TABLE savings_logs ADD COLUMN linked_transaction_id TEXT');
-      await db.execute('CREATE INDEX IF NOT EXISTS savings_logs_goal_created_idx ON savings_logs(goal_id, created_at DESC)');
-      await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS savings_logs_linked_transaction_idx ON savings_logs(linked_transaction_id) WHERE linked_transaction_id IS NOT NULL');
+      await _ensureSavingsLogSchema(db, backfillLinks: true);
+    }
+    if (oldVersion < 4) {
+      // Version 3 databases may already exist while missing columns from the
+      // previous migration, so inspect the table instead of trusting only the version.
+      await _ensureSavingsLogSchema(db, backfillLinks: true);
+    }
+  }
 
-      final logs = await db.query('savings_logs', columns: ['id']);
-      for (final log in logs) {
-        final transactionId = 'tx_savings_${log['id']}';
-        final matches = await db.query('transactions', columns: ['id'], where: 'id = ?', whereArgs: [transactionId], limit: 1);
-        if (matches.isNotEmpty) {
-          await db.update('savings_logs', {'deduct_from_budget': 1, 'linked_transaction_id': transactionId}, where: 'id = ?', whereArgs: [log['id']]);
-        }
+  Future<void> _ensureSavingsLogSchema(Database db, {required bool backfillLinks}) async {
+    final columns = await db.rawQuery('PRAGMA table_info(savings_logs)');
+    if (columns.isEmpty) return;
+
+    final columnNames = columns.map((column) => column['name'] as String).toSet();
+    if (!columnNames.contains('deduct_from_budget')) {
+      await db.execute('ALTER TABLE savings_logs ADD COLUMN deduct_from_budget INTEGER NOT NULL DEFAULT 0');
+    }
+    if (!columnNames.contains('linked_transaction_id')) {
+      await db.execute('ALTER TABLE savings_logs ADD COLUMN linked_transaction_id TEXT');
+    }
+
+    await db.execute('CREATE INDEX IF NOT EXISTS savings_logs_goal_created_idx ON savings_logs(goal_id, created_at DESC)');
+    await db.execute('CREATE UNIQUE INDEX IF NOT EXISTS savings_logs_linked_transaction_idx ON savings_logs(linked_transaction_id) WHERE linked_transaction_id IS NOT NULL');
+
+    if (!backfillLinks) return;
+    final logs = await db.query('savings_logs', columns: ['id']);
+    for (final log in logs) {
+      final transactionId = 'tx_savings_${log['id']}';
+      final matches = await db.query('transactions', columns: ['id'], where: 'id = ?', whereArgs: [transactionId], limit: 1);
+      if (matches.isNotEmpty) {
+        await db.update('savings_logs', {'deduct_from_budget': 1, 'linked_transaction_id': transactionId}, where: 'id = ?', whereArgs: [log['id']]);
       }
     }
   }
