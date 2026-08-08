@@ -2,6 +2,10 @@
 
 A new Flutter project.
 
+## Project documentation
+
+- [Data compatibility model](docs/DATA_COMPATIBILITY_MODEL.md) - authoritative definitions, formulas, invariants, and migration plan for PocketBudget financial data.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
