@@ -74,17 +74,27 @@ class TransactionsScreen extends StatelessWidget {
     final calendarHeight = weekCount * 46.0;
 
     return ListView(children: [
-      Padding(padding: const EdgeInsets.fromLTRB(12, 2, 12, 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        for (final label in const ['日', '一', '二', '三', '四', '五', '六']) Text(label, style: TextStyle(fontSize: 12, color: label == '日' || label == '六' ? AppColors.textSecondary : null, fontWeight: FontWeight.w500)),
-      ])),
-      SizedBox(
-        height: calendarHeight,
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(8),
-          itemCount: firstWeekday + days,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, childAspectRatio: 1.25),
-          itemBuilder: (context, index) {
+      Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.only(top: 6, bottom: 2),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.45)),
+        ),
+        child: Column(
+          children: [
+            Padding(padding: const EdgeInsets.fromLTRB(8, 2, 8, 4), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+              for (final label in const ['日', '一', '二', '三', '四', '五', '六']) Text(label, style: TextStyle(fontSize: 12, color: label == '日' || label == '六' ? AppColors.textSecondary : null, fontWeight: FontWeight.w500)),
+            ])),
+            SizedBox(
+              height: calendarHeight,
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(8),
+                itemCount: firstWeekday + days,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, childAspectRatio: 1.25),
+                itemBuilder: (context, index) {
           if (index < firstWeekday) return const SizedBox.shrink();
           final date = DateTime(year, month, index - firstWeekday + 1);
           final key = DateFormat('yyyy-MM-dd').format(date);
@@ -105,10 +115,13 @@ class TransactionsScreen extends StatelessWidget {
               ]),
             ),
           );
-          },
+                },
+              ),
+            ),
+            _pressureLegend(context),
+          ],
         ),
       ),
-      _pressureLegend(context),
       SizedBox(height: 260, child: _selectedDay(context, selectedTransactions)),
     ]);
   }
@@ -137,7 +150,7 @@ class TransactionsScreen extends StatelessWidget {
           Text(_selectedDateLabel(), style: const TextStyle(fontWeight: FontWeight.bold)),
           TextButton.icon(onPressed: () => onAdd(selectedDate), icon: const Icon(Icons.add, size: 16), label: const Text('记一笔')),
         ]),
-        Expanded(child: selectedTransactions.isEmpty ? const Center(child: Text('当天暂无记录', style: TextStyle(color: AppColors.textSecondary))) : ListView(children: selectedTransactions.map((transaction) => _transactionTile(context, transaction, compactDate: true)).toList())),
+        Expanded(child: selectedTransactions.isEmpty ? const Center(child: Text('当天暂无记录', style: TextStyle(color: AppColors.textSecondary))) : ListView(padding: const EdgeInsets.only(bottom: 80), children: selectedTransactions.map((transaction) => _transactionTile(context, transaction, compactDate: true)).toList())),
       ]),
     );
   }

@@ -74,6 +74,13 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
           iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(color: states.contains(WidgetState.selected) ? AppColors.primary : const Color(0xFF9AA3B2))),
           labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(color: states.contains(WidgetState.selected) ? AppColors.primary : const Color(0xFF9AA3B2))),
         ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shape: CircleBorder(),
+          sizeConstraints: BoxConstraints.tightFor(width: 56, height: 56),
+        ),
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 0,
@@ -106,6 +113,13 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
           indicatorColor: const Color(0xFF293A62),
           iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(color: states.contains(WidgetState.selected) ? AppColors.primaryLight : AppColors.textSecondary)),
           labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(color: states.contains(WidgetState.selected) ? AppColors.primaryLight : AppColors.textSecondary)),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shape: CircleBorder(),
+          sizeConstraints: BoxConstraints.tightFor(width: 56, height: 56),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: AppColors.darkBackground,
