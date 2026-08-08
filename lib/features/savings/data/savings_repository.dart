@@ -7,6 +7,23 @@ import '../../transactions/data/models/transaction_model.dart';
 class SavingsRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
+  Future<double> _recalculateGoalBalance(
+      DatabaseExecutor db, String goalId) async {
+    final totals = await db.rawQuery(
+      'SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?',
+      [goalId],
+    );
+    final total = ((totals.first['total'] as num?) ?? 0).toDouble();
+    final currentAmount = total.clamp(0.0, double.infinity);
+    await db.update(
+      'savings_goals',
+      {'current_amount': currentAmount},
+      where: 'id = ?',
+      whereArgs: [goalId],
+    );
+    return currentAmount;
+  }
+
   Future<void> insertGoal(SavingsGoalModel goal) async {
     final db = await _dbHelper.database;
     await db.insert('savings_goals', goal.toMap());
@@ -20,7 +37,8 @@ class SavingsRepository {
 
   Future<List<SavingsLogModel>> getLogsForGoal(String goalId) async {
     final db = await _dbHelper.database;
-    final maps = await db.query('savings_logs', where: 'goal_id = ?', whereArgs: [goalId], orderBy: 'created_at DESC');
+    final maps = await db.query('savings_logs',
+        where: 'goal_id = ?', whereArgs: [goalId], orderBy: 'created_at DESC');
     return maps.map((m) => SavingsLogModel.fromMap(m)).toList();
   }
 
@@ -30,14 +48,15 @@ class SavingsRepository {
     return maps.map((m) => SavingsLogModel.fromMap(m)).toList();
   }
 
-  Future<void> addSavingsLog(SavingsLogModel log, {bool deductFromBudget = false}) async {
+  Future<void> addSavingsLog(SavingsLogModel log,
+      {bool deductFromBudget = false}) async {
     final db = await _dbHelper.database;
 
     await db.transaction((txn) async {
-      final maps = await txn.query('savings_goals', where: 'id = ?', whereArgs: [log.goalId]);
+      final maps = await txn
+          .query('savings_goals', where: 'id = ?', whereArgs: [log.goalId]);
       if (maps.isEmpty) return;
 
-      final goal = SavingsGoalModel.fromMap(maps.first);
       const linkedTransactionId = null;
       final persistedLog = log.toMap()
         ..['deduct_from_budget'] = deductFromBudget && log.amount > 0 ? 1 : 0
@@ -47,74 +66,90 @@ class SavingsRepository {
       if (deductFromBudget && log.amount > 0) {
         await txn.insert('budget_allocations', {
           'id': 'allocation_${log.id}',
-          'period': '${log.createdAt.year}-${log.createdAt.month.toString().padLeft(2, '0')}',
+          'period':
+              '${log.createdAt.year}-${log.createdAt.month.toString().padLeft(2, '0')}',
           'savings_log_id': log.id,
           'allocated_amount': log.amount,
           'created_at': log.createdAt.millisecondsSinceEpoch,
         });
       }
 
-      final newCurrent = (goal.currentAmount + log.amount).clamp(0.0, double.infinity);
-      await txn.update('savings_goals', {'current_amount': newCurrent}, where: 'id = ?', whereArgs: [log.goalId]);
-
+      await _recalculateGoalBalance(txn, log.goalId);
     });
   }
 
   Future<void> deleteSavingsLog(String id) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
-      final logs = await txn.query('savings_logs', where: 'id = ?', whereArgs: [id], limit: 1);
+      final logs = await txn.query('savings_logs',
+          where: 'id = ?', whereArgs: [id], limit: 1);
       if (logs.isEmpty) return;
 
       final log = logs.first;
       final goalId = log['goal_id'] as String;
       final transactionId = log['linked_transaction_id'] as String?;
       if (transactionId != null) {
-        await txn.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
+        await txn.delete('transactions',
+            where: 'id = ?', whereArgs: [transactionId]);
       }
-      await txn.delete('budget_allocations', where: 'savings_log_id = ?', whereArgs: [id]);
+      await txn.delete('budget_allocations',
+          where: 'savings_log_id = ?', whereArgs: [id]);
       await txn.delete('savings_logs', where: 'id = ?', whereArgs: [id]);
 
-      final totals = await txn.rawQuery('SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?', [goalId]);
-      final currentAmount = ((totals.first['total'] as num?) ?? 0).toDouble().clamp(0.0, double.infinity);
-      await txn.update('savings_goals', {'current_amount': currentAmount}, where: 'id = ?', whereArgs: [goalId]);
+      await _recalculateGoalBalance(txn, goalId);
     });
   }
 
-  Future<void> updateSavingsLog(SavingsLogModel log, {required bool deductFromBudget}) async {
+  Future<void> updateSavingsLog(SavingsLogModel log,
+      {required bool deductFromBudget}) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
-      final existingRows = await txn.query('savings_logs', where: 'id = ?', whereArgs: [log.id], limit: 1);
+      final existingRows = await txn.query('savings_logs',
+          where: 'id = ?', whereArgs: [log.id], limit: 1);
       if (existingRows.isEmpty) return;
 
       final existing = SavingsLogModel.fromMap(existingRows.first);
-      final goalRows = await txn.query('savings_goals', where: 'id = ?', whereArgs: [log.goalId], limit: 1);
+      final goalRows = await txn.query('savings_goals',
+          where: 'id = ?', whereArgs: [log.goalId], limit: 1);
       if (goalRows.isEmpty) return;
 
-      final totals = await txn.rawQuery('SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ? AND id != ?', [log.goalId, log.id]);
-      final currentAmount = (((totals.first['total'] as num?) ?? 0) + log.amount).toDouble();
-      if (currentAmount < 0) throw StateError('Savings balance cannot be negative');
+      final totals = await txn.rawQuery(
+        'SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ? AND id != ?',
+        [log.goalId, log.id],
+      );
+      final projectedAmount =
+          (((totals.first['total'] as num?) ?? 0) + log.amount).toDouble();
+      if (projectedAmount < 0) {
+        throw StateError('Savings balance cannot be negative');
+      }
 
       final goal = SavingsGoalModel.fromMap(goalRows.first);
-      final linkedTransactionId = deductFromBudget && log.amount > 0 ? existing.linkedTransactionId ?? 'tx_savings_${log.id}' : null;
+      final linkedTransactionId = deductFromBudget && log.amount > 0
+          ? existing.linkedTransactionId ?? 'tx_savings_${log.id}'
+          : null;
       final persistedLog = log.toMap()
         ..['deduct_from_budget'] = linkedTransactionId == null ? 0 : 1
         ..['linked_transaction_id'] = linkedTransactionId;
-      await txn.update('savings_logs', persistedLog, where: 'id = ?', whereArgs: [log.id]);
+      await txn.update('savings_logs', persistedLog,
+          where: 'id = ?', whereArgs: [log.id]);
 
-      await txn.delete('budget_allocations', where: 'savings_log_id = ?', whereArgs: [log.id]);
+      await txn.delete('budget_allocations',
+          where: 'savings_log_id = ?', whereArgs: [log.id]);
       if (deductFromBudget && log.amount > 0) {
         await txn.insert('budget_allocations', {
           'id': 'allocation_${log.id}',
-          'period': '${log.createdAt.year}-${log.createdAt.month.toString().padLeft(2, '0')}',
+          'period':
+              '${log.createdAt.year}-${log.createdAt.month.toString().padLeft(2, '0')}',
           'savings_log_id': log.id,
           'allocated_amount': log.amount,
           'created_at': log.createdAt.millisecondsSinceEpoch,
         });
       }
 
-      if (existing.linkedTransactionId != null && existing.linkedTransactionId != linkedTransactionId) {
-        await txn.delete('transactions', where: 'id = ?', whereArgs: [existing.linkedTransactionId]);
+      if (existing.linkedTransactionId != null &&
+          existing.linkedTransactionId != linkedTransactionId) {
+        await txn.delete('transactions',
+            where: 'id = ?', whereArgs: [existing.linkedTransactionId]);
       }
       if (linkedTransactionId != null) {
         final tx = TransactionModel(
@@ -125,25 +160,34 @@ class SavingsRepository {
           categoryName: '强迫存钱',
           categoryIcon: '🎯',
           date: log.createdAt,
-          note: "存入【${goal.title}】${log.note != null && log.note!.isNotEmpty ? ' (${log.note})' : ''}",
+          note:
+              "存入【${goal.title}】${log.note != null && log.note!.isNotEmpty ? ' (${log.note})' : ''}",
         );
-        await txn.insert('transactions', tx.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert('transactions', tx.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
       }
-      await txn.update('savings_goals', {'current_amount': currentAmount}, where: 'id = ?', whereArgs: [log.goalId]);
+      await _recalculateGoalBalance(txn, log.goalId);
     });
   }
 
   Future<void> deleteGoal(String id) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
-      final logs = await txn.query('savings_logs', columns: ['linked_transaction_id'], where: 'goal_id = ?', whereArgs: [id]);
+      final logs = await txn.query('savings_logs',
+          columns: ['linked_transaction_id'],
+          where: 'goal_id = ?',
+          whereArgs: [id]);
       for (final log in logs) {
         final transactionId = log['linked_transaction_id'] as String?;
         if (transactionId != null) {
-          await txn.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
+          await txn.delete('transactions',
+              where: 'id = ?', whereArgs: [transactionId]);
         }
       }
-      await txn.delete('budget_allocations', where: 'savings_log_id IN (SELECT id FROM savings_logs WHERE goal_id = ?)', whereArgs: [id]);
+      await txn.delete('budget_allocations',
+          where:
+              'savings_log_id IN (SELECT id FROM savings_logs WHERE goal_id = ?)',
+          whereArgs: [id]);
       await txn.delete('savings_logs', where: 'goal_id = ?', whereArgs: [id]);
       await txn.delete('savings_goals', where: 'id = ?', whereArgs: [id]);
     });
