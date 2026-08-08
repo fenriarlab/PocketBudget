@@ -10,6 +10,7 @@ class DashboardScreen extends StatelessWidget {
   final double monthlyBudget;
   final double monthlyExpense;
   final double monthlyIncome;
+  final double budgetedSavings;
   final List<SavingsGoalModel> goals;
   final String currentPeriod;
   final bool privacyHidden;
@@ -28,6 +29,7 @@ class DashboardScreen extends StatelessWidget {
     required this.monthlyBudget,
     required this.monthlyExpense,
     required this.monthlyIncome,
+    this.budgetedSavings = 0,
     required this.goals,
     required this.currentPeriod,
     required this.privacyHidden,
@@ -46,7 +48,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remainingBudget = monthlyBudget - monthlyExpense;
+    final budgetUsed = monthlyExpense + budgetedSavings;
+    final remainingBudget = monthlyBudget - budgetUsed;
     final now = DateTime.now();
     final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final remainingDays = (daysInMonth - now.day + 1).clamp(1, daysInMonth);
@@ -66,7 +69,7 @@ class DashboardScreen extends StatelessWidget {
           period: currentPeriod,
           remainingBudget: remainingBudget,
           monthlyBudget: monthlyBudget,
-          monthlyExpense: monthlyExpense,
+          monthlyExpense: budgetUsed,
           amount: _amount,
         ),
         Container(
@@ -105,7 +108,7 @@ class DashboardScreen extends StatelessWidget {
       ]);
     }
 
-    final progress = monthlyBudget > 0 ? (monthlyExpense / monthlyBudget).clamp(0.0, 1.0) : 0.0;
+    final progress = monthlyBudget > 0 ? (budgetUsed / monthlyBudget).clamp(0.0, 1.0) : 0.0;
 
     return Column(
       children: [

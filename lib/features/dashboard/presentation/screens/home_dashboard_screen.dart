@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/month_period.dart';
 import '../../../analysis/presentation/screens/analysis_screen.dart';
 import '../../../backup/data/backup_repository.dart';
 import '../../../budget/data/budget_repository.dart';
+import '../../domain/services/monthly_financial_calculator.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/data/models/savings_log_model.dart';
 import '../../../savings/data/savings_repository.dart';
@@ -31,7 +33,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final _savingsRepository = SavingsRepository();
   final _budgetRepository = BudgetRepository();
   final _backupRepository = BackupRepository();
-  final _currentPeriod = DateFormat('yyyy-MM').format(DateTime.now());
+  final _financialCalculator = const MonthlyFinancialCalculator();
 
   int _selectedIndex = 0;
   bool _isLoading = true;
@@ -45,6 +47,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   double _monthlyBudget = 5000;
   double _monthlyExpense = 0;
   double _monthlyIncome = 0;
+  double _monthlyBudgetedSavings = 0;
+
+  String get _currentPeriod => MonthPeriod.fromDate(_selectedMonth).key;
 
   @override
   void initState() {
@@ -85,18 +90,33 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<void> _loadData() async {
     final transactions = await _transactionRepository.getAllTransactions();
     final goals = await _savingsRepository.getAllGoals();
-    final expense = await _transactionRepository.getTotalExpenseByMonth(_currentPeriod);
-    final income = await _transactionRepository.getTotalIncomeByMonth(_currentPeriod);
+    final savingsLogs = await _savingsRepository.getAllLogs();
     final budget = await _budgetRepository.getBudget(_currentPeriod);
+    final snapshot = _financialCalculator.calculate(
+      period: MonthPeriod.parse(_currentPeriod),
+      transactions: transactions,
+      savingsLogs: savingsLogs,
+      budget: budget,
+    );
     if (!mounted) return;
     setState(() {
       _transactions = transactions;
       _goals = goals;
-      _monthlyExpense = expense;
-      _monthlyIncome = income;
+      _monthlyExpense = snapshot.consumption;
+      _monthlyIncome = snapshot.income;
+      _monthlyBudgetedSavings = snapshot.budgetedSavings;
       if (budget != null) _monthlyBudget = budget.totalBudget;
       _isLoading = false;
     });
+  }
+
+  void _changeMonth(DateTime month) {
+    setState(() {
+      _selectedMonth = DateTime(month.year, month.month);
+      _selectedDate = DateTime(month.year, month.month, 1);
+      _isLoading = true;
+    });
+    _loadData();
   }
 
   @override
@@ -138,6 +158,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           currentPeriod: _currentPeriod,
           monthlyBudget: _monthlyBudget,
           monthlyExpense: _monthlyExpense,
+          monthlyBudgetedSavings: _monthlyBudgetedSavings,
           onEditBudget: () => _showBudgetSheet(),
           onAddGoal: _showGoalSheet,
           onDelete: (goal) async {
@@ -166,6 +187,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           monthlyBudget: _monthlyBudget,
           monthlyExpense: _monthlyExpense,
           monthlyIncome: _monthlyIncome,
+          budgetedSavings: _monthlyBudgetedSavings,
           goals: _goals,
           currentPeriod: _currentPeriod,
           privacyHidden: _privacyHidden,
@@ -173,10 +195,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           selectedMonth: _selectedMonth,
           selectedDate: _selectedDate,
           dailyQuota: _monthlyBudget / DateUtils.getDaysInMonth(_selectedMonth.year, _selectedMonth.month),
-          onMonthChanged: (month) => setState(() {
-            _selectedMonth = DateTime(month.year, month.month);
-            _selectedDate = DateTime(month.year, month.month, 1);
-          }),
+          onMonthChanged: _changeMonth,
           onDateSelected: (date) => setState(() => _selectedDate = date),
           onDelete: _deleteTransaction,
           onEdit: _showEditTransactionSheet,

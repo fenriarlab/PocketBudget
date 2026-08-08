@@ -11,6 +11,7 @@ class PlanScreen extends StatelessWidget {
   final String currentPeriod;
   final double monthlyBudget;
   final double monthlyExpense;
+  final double monthlyBudgetedSavings;
   final VoidCallback onEditBudget;
   final VoidCallback onAddGoal;
   final ValueChanged<SavingsGoalModel> onDelete;
@@ -24,6 +25,7 @@ class PlanScreen extends StatelessWidget {
     required this.currentPeriod,
     required this.monthlyBudget,
     required this.monthlyExpense,
+    this.monthlyBudgetedSavings = 0,
     required this.onEditBudget,
     required this.onAddGoal,
     required this.onDelete,
@@ -35,15 +37,16 @@ class PlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = monthlyBudget - monthlyExpense;
-    final progress = monthlyBudget > 0 ? (monthlyExpense / monthlyBudget).clamp(0.0, 1.0) : 0.0;
+    final budgetUsed = monthlyExpense + monthlyBudgetedSavings;
+    final remaining = monthlyBudget - budgetUsed;
+    final progress = monthlyBudget > 0 ? (budgetUsed / monthlyBudget).clamp(0.0, 1.0) : 0.0;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         _BudgetPlanCard(
           period: currentPeriod,
           budget: monthlyBudget,
-          expense: monthlyExpense,
+          expense: budgetUsed,
           remaining: remaining,
           progress: progress,
           amount: _amount,

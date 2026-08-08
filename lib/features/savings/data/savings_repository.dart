@@ -24,6 +24,12 @@ class SavingsRepository {
     return maps.map((m) => SavingsLogModel.fromMap(m)).toList();
   }
 
+  Future<List<SavingsLogModel>> getAllLogs() async {
+    final db = await _dbHelper.database;
+    final maps = await db.query('savings_logs', orderBy: 'created_at DESC');
+    return maps.map((m) => SavingsLogModel.fromMap(m)).toList();
+  }
+
   Future<void> addSavingsLog(SavingsLogModel log, {bool deductFromBudget = false}) async {
     final db = await _dbHelper.database;
 
