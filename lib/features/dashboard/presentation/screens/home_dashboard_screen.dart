@@ -580,6 +580,7 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
   final _noteController = TextEditingController();
   bool _deductFromBudget = true;
   String? _amountError;
+  String? _saveError;
   bool _isSaving = false;
 
   @override
@@ -620,6 +621,10 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
               subtitle: const Text('开启后会生成一笔“强迫存钱”支出，减少本月可用预算', style: TextStyle(fontSize: 12)),
               onChanged: (value) => setState(() => _deductFromBudget = value ?? true),
             ),
+          if (_saveError != null) ...[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerLeft, child: Text(_saveError!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12))),
+          ],
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -639,10 +644,18 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
                 if (_amountError != null) return;
                 final validValue = value!;
                 setState(() => _isSaving = true);
-                await widget.onSave(
-                  SavingsLogModel(id: widget.initialLog?.id ?? 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: widget.goal.id, amount: widget.isWithdraw ? -validValue : validValue, note: _noteController.text.trim(), createdAt: widget.initialLog?.createdAt ?? DateTime.now()),
-                  !widget.isWithdraw && _deductFromBudget,
-                );
+                try {
+                  await widget.onSave(
+                    SavingsLogModel(id: widget.initialLog?.id ?? 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: widget.goal.id, amount: widget.isWithdraw ? -validValue : validValue, note: _noteController.text.trim(), createdAt: widget.initialLog?.createdAt ?? DateTime.now()),
+                    !widget.isWithdraw && _deductFromBudget,
+                  );
+                } catch (error) {
+                  if (!mounted) return;
+                  setState(() {
+                    _isSaving = false;
+                    _saveError = '保存失败，请重试（$error）';
+                  });
+                }
               },
               child: Text(_isSaving ? '保存中…' : widget.initialLog == null ? (widget.isWithdraw ? '确认提取' : '确认存入') : '保存修改'),
             ),

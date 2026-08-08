@@ -121,4 +121,32 @@ void main() {
     expect(savedLog?.amount, 100);
     expect(savedDeductFromBudget, isTrue);
   });
+
+  testWidgets('deposit sheet recovers when saving fails', (tester) async {
+    final goal = SavingsGoalModel(
+      id: 'goal-1',
+      title: '旅行基金',
+      targetAmount: 1000,
+      currentAmount: 0,
+      targetDate: DateTime(2026, 12, 31),
+      createdAt: DateTime(2026, 8, 1),
+    );
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: SavingsDepositSheet(
+          goal: goal,
+          isWithdraw: false,
+          onSave: (_, __) async => throw StateError('database unavailable'),
+        ),
+      ),
+    ));
+
+    await tester.enterText(find.byType(TextField).first, '2000');
+    await tester.tap(find.text('确认存入'));
+    await tester.pump();
+
+    expect(find.textContaining('保存失败，请重试'), findsOneWidget);
+    expect(find.text('确认存入'), findsOneWidget);
+  });
 }
