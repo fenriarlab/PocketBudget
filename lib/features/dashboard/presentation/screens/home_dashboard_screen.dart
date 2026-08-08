@@ -174,7 +174,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           transactions: _transactions,
           selectedMonth: _selectedMonth,
           selectedDate: _selectedDate,
-          dailyQuota: _monthlyBudget / 30,
+          dailyQuota: _monthlyBudget / DateUtils.getDaysInMonth(_selectedMonth.year, _selectedMonth.month),
           onMonthChanged: (month) => setState(() {
             _selectedMonth = DateTime(month.year, month.month);
             _selectedDate = DateTime(month.year, month.month, 1);

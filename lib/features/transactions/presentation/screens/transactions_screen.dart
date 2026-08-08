@@ -200,7 +200,7 @@ class TransactionsScreen extends StatelessWidget {
 
   Color _heatColor(BuildContext context, double expense) {
     if (expense == 0) return Theme.of(context).colorScheme.surface;
-    final ratio = dailyQuota > 0 ? expense / dailyQuota : 1.0;
+    final ratio = dailyQuota > 0 ? expense / dailyQuota : double.infinity;
     return PressureLevelDetails.fromRatio(ratio).color.withValues(alpha: 0.28);
   }
 

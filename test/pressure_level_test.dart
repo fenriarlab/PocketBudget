@@ -9,6 +9,7 @@ void main() {
     expect(PressureLevelDetails.fromRatio(0.75), PressureLevel.high);
     expect(PressureLevelDetails.fromRatio(1), PressureLevel.high);
     expect(PressureLevelDetails.fromRatio(1.01), PressureLevel.veryHigh);
+    expect(PressureLevelDetails.fromRatio(double.infinity), PressureLevel.veryHigh);
   });
 
   test('each pressure level exposes the matching legend label and color', () {
