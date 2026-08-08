@@ -28,7 +28,7 @@ class SavingsGoalsSection extends StatelessWidget {
 
   const SavingsGoalsSection({super.key, required this.goals, required this.privacyHidden, required this.onAddGoal, required this.onDelete, required this.onHistory, required this.onDeposit});
 
-  String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
+  String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${NumberFormat('#,##0.00', 'en_US').format(value)}';
 
   @override
   Widget build(BuildContext context) {

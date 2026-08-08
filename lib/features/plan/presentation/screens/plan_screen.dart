@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
@@ -30,7 +31,7 @@ class PlanScreen extends StatelessWidget {
     required this.onDeposit,
   });
 
-  String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
+  String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${NumberFormat('#,##0.00', 'en_US').format(value)}';
 
   @override
   Widget build(BuildContext context) {
