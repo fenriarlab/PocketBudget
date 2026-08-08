@@ -14,11 +14,25 @@ class SavingsScreen extends StatelessWidget {
 
   const SavingsScreen({super.key, required this.goals, required this.privacyHidden, required this.onAddGoal, required this.onDelete, required this.onHistory, required this.onDeposit});
 
+  @override
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.all(16), children: [SavingsGoalsSection(goals: goals, privacyHidden: privacyHidden, onAddGoal: onAddGoal, onDelete: onDelete, onHistory: onHistory, onDeposit: onDeposit)]);
+}
+
+class SavingsGoalsSection extends StatelessWidget {
+  final List<SavingsGoalModel> goals;
+  final bool privacyHidden;
+  final VoidCallback onAddGoal;
+  final ValueChanged<SavingsGoalModel> onDelete;
+  final ValueChanged<SavingsGoalModel> onHistory;
+  final void Function(SavingsGoalModel, bool) onDeposit;
+
+  const SavingsGoalsSection({super.key, required this.goals, required this.privacyHidden, required this.onAddGoal, required this.onDelete, required this.onHistory, required this.onDeposit});
+
   String _amount(double value) => privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         const Text('存钱目标', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ElevatedButton.icon(onPressed: onAddGoal, icon: const Icon(Icons.add), label: const Text('新建目标')),

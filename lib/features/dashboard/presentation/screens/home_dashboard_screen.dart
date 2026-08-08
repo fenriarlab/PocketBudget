@@ -10,7 +10,7 @@ import '../../../budget/data/budget_repository.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/data/models/savings_log_model.dart';
 import '../../../savings/data/savings_repository.dart';
-import '../../../savings/presentation/screens/savings_screen.dart';
+import '../../../plan/presentation/screens/plan_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../../../transactions/data/transaction_repository.dart';
@@ -132,9 +132,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Widget _buildPage() {
     switch (_selectedIndex) {
       case 1:
-        return SavingsScreen(
+        return PlanScreen(
           goals: _goals,
           privacyHidden: _privacyHidden,
+          currentPeriod: _currentPeriod,
+          monthlyBudget: _monthlyBudget,
+          monthlyExpense: _monthlyExpense,
+          onEditBudget: () => _showBudgetSheet(),
           onAddGoal: _showGoalSheet,
           onDelete: (goal) async {
             await _savingsRepository.deleteGoal(goal.id);
@@ -225,6 +229,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       builder: (sheetContext) => SavingsGoalSheet(
         onSave: (goal) async {
           await _savingsRepository.insertGoal(goal);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
+    if (mounted) _loadData();
+  }
+
+  Future<void> _showBudgetSheet() async {
+    await _showBottomSheet<void>(
+      isScrollControlled: true,
+      builder: (sheetContext) => _BudgetSheet(
+        initialBudget: _monthlyBudget,
+        onSave: (budget) async {
+          await _budgetRepository.setBudget(_currentPeriod, budget);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
         },
       ),
@@ -513,6 +531,59 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _BudgetSheet extends StatefulWidget {
+  final double initialBudget;
+  final Future<void> Function(double budget) onSave;
+
+  const _BudgetSheet({required this.initialBudget, required this.onSave});
+
+  @override
+  State<_BudgetSheet> createState() => _BudgetSheetState();
+}
+
+class _BudgetSheetState extends State<_BudgetSheet> {
+  late final TextEditingController _controller = TextEditingController(text: widget.initialBudget.toStringAsFixed(2));
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('编辑本月预算', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(labelText: '预算上限', prefixText: '¥ ', errorText: _error, border: const OutlineInputBorder()),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () async {
+              final budget = double.tryParse(_controller.text.trim());
+              if (budget == null || budget < 0) {
+                setState(() => _error = '请输入不小于 0 的预算金额');
+                return;
+              }
+              await widget.onSave(budget);
+            },
+            child: const Text('保存预算'),
+          ),
+        ),
+      ]),
     );
   }
 }
