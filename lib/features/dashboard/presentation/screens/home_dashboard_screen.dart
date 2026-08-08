@@ -259,10 +259,26 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (mounted) _loadData();
   }
 
+  Future<void> _showEditSavingsLogSheet(SavingsGoalModel goal, SavingsLogModel log) async {
+    await _showBottomSheet<void>(
+      isScrollControlled: true,
+      builder: (sheetContext) => SavingsDepositSheet(
+        goal: goal,
+        isWithdraw: !log.isDeposit,
+        initialLog: log,
+        onSave: (updatedLog, deductFromBudget) async {
+          await _savingsRepository.updateSavingsLog(updatedLog, deductFromBudget: deductFromBudget);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
+    if (mounted) _loadData();
+  }
+
   Future<void> _showGoalHistory(SavingsGoalModel goal) async {
     final logs = await _savingsRepository.getLogsForGoal(goal.id);
     if (!mounted) return;
-    await _showBottomSheet<void>(
+    final action = await _showBottomSheet<String>(
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => ListView(
           padding: const EdgeInsets.all(20),
@@ -280,6 +296,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   trailing: PopupMenuButton<String>(
                     tooltip: '流水操作',
                     onSelected: (value) async {
+                      if (value == 'edit') {
+                        Navigator.pop(context, 'edit:${log.id}');
+                        return;
+                      }
                       if (value != 'delete') return;
                       final confirmed = await showDialog<bool>(
                         context: context,
@@ -298,7 +318,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       setSheetState(() {});
                       if (mounted) _loadData();
                     },
-                    itemBuilder: (context) => const [PopupMenuItem(value: 'delete', child: Text('删除流水'))],
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'edit', child: Text('编辑流水')),
+                      PopupMenuItem(value: 'delete', child: Text('删除流水')),
+                    ],
                   ),
                 ),
               ),
@@ -306,6 +329,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         ),
       ),
     );
+    if (action != null && action.startsWith('edit:') && mounted) {
+      final logId = action.substring('edit:'.length);
+      final log = logs.where((item) => item.id == logId).firstOrNull;
+      if (log != null) await _showEditSavingsLogSheet(goal, log);
+    }
   }
 
   Future<T?> _showBottomSheet<T>({required WidgetBuilder builder, bool isScrollControlled = false}) async {
@@ -528,9 +556,10 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
 class SavingsDepositSheet extends StatefulWidget {
   final SavingsGoalModel goal;
   final bool isWithdraw;
+  final SavingsLogModel? initialLog;
   final Future<void> Function(SavingsLogModel log, bool deductFromBudget) onSave;
 
-  const SavingsDepositSheet({super.key, required this.goal, required this.isWithdraw, required this.onSave});
+  const SavingsDepositSheet({super.key, required this.goal, required this.isWithdraw, this.initialLog, required this.onSave});
 
   @override
   State<SavingsDepositSheet> createState() => _SavingsDepositSheetState();
@@ -542,6 +571,17 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
   bool _deductFromBudget = true;
   String? _amountError;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final log = widget.initialLog;
+    if (log != null) {
+      _amountController.text = log.amount.abs().toStringAsFixed(2);
+      _noteController.text = log.note ?? '';
+      _deductFromBudget = log.deductFromBudget;
+    }
+  }
 
   @override
   void dispose() {
@@ -557,7 +597,7 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(widget.isWithdraw ? '从「${widget.goal.title}」提取' : '向「${widget.goal.title}」存入', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(widget.initialLog == null ? (widget.isWithdraw ? '从「${widget.goal.title}」提取' : '向「${widget.goal.title}」存入') : '编辑「${widget.goal.title}」流水', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           TextField(controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: widget.isWithdraw ? '提取金额' : '存入金额', prefixText: '¥ ', errorText: _amountError, border: const OutlineInputBorder())),
           const SizedBox(height: 12),
@@ -590,11 +630,11 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
                 final validValue = value!;
                 setState(() => _isSaving = true);
                 await widget.onSave(
-                  SavingsLogModel(id: 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: widget.goal.id, amount: widget.isWithdraw ? -validValue : validValue, note: _noteController.text.trim(), createdAt: DateTime.now()),
+                  SavingsLogModel(id: widget.initialLog?.id ?? 'slog_${DateTime.now().microsecondsSinceEpoch}', goalId: widget.goal.id, amount: widget.isWithdraw ? -validValue : validValue, note: _noteController.text.trim(), createdAt: widget.initialLog?.createdAt ?? DateTime.now()),
                   !widget.isWithdraw && _deductFromBudget,
                 );
               },
-              child: Text(_isSaving ? '保存中…' : widget.isWithdraw ? '确认提取' : '确认存入'),
+              child: Text(_isSaving ? '保存中…' : widget.initialLog == null ? (widget.isWithdraw ? '确认提取' : '确认存入') : '保存修改'),
             ),
           ),
         ],
