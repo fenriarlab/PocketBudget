@@ -262,7 +262,50 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<void> _showGoalHistory(SavingsGoalModel goal) async {
     final logs = await _savingsRepository.getLogsForGoal(goal.id);
     if (!mounted) return;
-    await _showBottomSheet<void>(builder: (context) => ListView(padding: const EdgeInsets.all(20), children: [Text('「${goal.title}」流水明细', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 12), if (logs.isEmpty) const Text('暂无记录', style: TextStyle(color: AppColors.textSecondary)) else ...logs.map((log) => ListTile(leading: Icon(log.isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: log.isDeposit ? AppColors.income : AppColors.expense), title: Text('${log.isDeposit ? '存入' : '提取'} ¥${log.amount.abs().toStringAsFixed(2)}'), subtitle: Text(log.note ?? '')))]));
+    await _showBottomSheet<void>(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Text('「${goal.title}」流水明细', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            if (logs.isEmpty)
+              const Text('暂无记录', style: TextStyle(color: AppColors.textSecondary))
+            else
+              ...logs.map(
+                (log) => ListTile(
+                  leading: Icon(log.isDeposit ? Icons.arrow_downward : Icons.arrow_upward, color: log.isDeposit ? AppColors.income : AppColors.expense),
+                  title: Text('${log.isDeposit ? '存入' : '提取'} ¥${log.amount.abs().toStringAsFixed(2)}'),
+                  subtitle: Text(log.note?.isNotEmpty == true ? log.note! : '未填写备注'),
+                  trailing: PopupMenuButton<String>(
+                    tooltip: '流水操作',
+                    onSelected: (value) async {
+                      if (value != 'delete') return;
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('删除这笔流水？'),
+                          content: Text('删除后会同步更新“${goal.title}”的余额${log.linkedTransactionId == null ? '' : '和预算支出'}。'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('取消')),
+                            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('删除')),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      await _savingsRepository.deleteSavingsLog(log.id);
+                      logs.removeWhere((item) => item.id == log.id);
+                      setSheetState(() {});
+                      if (mounted) _loadData();
+                    },
+                    itemBuilder: (context) => const [PopupMenuItem(value: 'delete', child: Text('删除流水'))],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<T?> _showBottomSheet<T>({required WidgetBuilder builder, bool isScrollControlled = false}) async {

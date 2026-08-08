@@ -56,6 +56,26 @@ class SavingsRepository {
     });
   }
 
+  Future<void> deleteSavingsLog(String id) async {
+    final db = await _dbHelper.database;
+    await db.transaction((txn) async {
+      final logs = await txn.query('savings_logs', where: 'id = ?', whereArgs: [id], limit: 1);
+      if (logs.isEmpty) return;
+
+      final log = logs.first;
+      final goalId = log['goal_id'] as String;
+      final transactionId = log['linked_transaction_id'] as String?;
+      if (transactionId != null) {
+        await txn.delete('transactions', where: 'id = ?', whereArgs: [transactionId]);
+      }
+      await txn.delete('savings_logs', where: 'id = ?', whereArgs: [id]);
+
+      final totals = await txn.rawQuery('SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?', [goalId]);
+      final currentAmount = ((totals.first['total'] as num?) ?? 0).toDouble().clamp(0.0, double.infinity);
+      await txn.update('savings_goals', {'current_amount': currentAmount}, where: 'id = ?', whereArgs: [goalId]);
+    });
+  }
+
   Future<void> deleteGoal(String id) async {
     final db = await _dbHelper.database;
     await db.transaction((txn) async {
