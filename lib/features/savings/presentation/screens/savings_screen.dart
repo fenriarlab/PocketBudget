@@ -53,9 +53,15 @@ class SavingsGoalsSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: colorScheme.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: completed ? AppColors.income : colorScheme.outlineVariant)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        Row(children: [
           Expanded(child: Text(goal.title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface), overflow: TextOverflow.ellipsis)),
-          IconButton(icon: const Icon(Icons.delete_outline), onPressed: () => onDelete(goal)),
+          PopupMenuButton<String>(
+            tooltip: '目标操作',
+            onSelected: (value) async {
+              if (value == 'delete' && await _confirmDelete(context, goal)) onDelete(goal);
+            },
+            itemBuilder: (context) => const [PopupMenuItem(value: 'delete', child: Text('删除目标'))],
+          ),
         ]),
         Text('目标日期: ${DateFormat('yyyy-MM-dd').format(goal.targetDate)} · 剩余 $remainingDays 天', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         const SizedBox(height: 14),
@@ -67,13 +73,27 @@ class SavingsGoalsSection extends StatelessWidget {
           Text('按照当前目标，每日存入 ${_amount(dailyNeeded)} 可按时完成', style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         ],
         const SizedBox(height: 12),
-        Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+        Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
           TextButton.icon(onPressed: () => onHistory(goal), icon: const Icon(Icons.history, size: 16), label: const Text('流水明细')),
           OutlinedButton(onPressed: () => onDeposit(goal, true), child: const Text('提取')),
-          const SizedBox(width: 8),
           ElevatedButton.icon(onPressed: () => onDeposit(goal, false), icon: const Icon(Icons.add), label: const Text('存入一笔')),
         ]),
       ]),
     );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context, SavingsGoalModel goal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('删除存钱目标？'),
+        content: Text('将同时删除“${goal.title}”的存取记录和已关联的预算支出。此操作无法撤销。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('取消')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('删除')),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 }
