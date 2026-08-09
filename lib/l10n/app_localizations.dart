@@ -674,6 +674,12 @@ abstract class AppLocalizations {
   /// **'永久删除'**
   String get purgeSavingsGoal;
 
+  /// No description provided for @deleteSavingsGoal.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除专项储蓄'**
+  String get deleteSavingsGoal;
+
   /// No description provided for @goalDeadline.
   ///
   /// In zh, this message translates to:

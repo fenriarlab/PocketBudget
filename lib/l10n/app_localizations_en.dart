@@ -324,6 +324,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get purgeSavingsGoal => 'Delete permanently';
 
   @override
+  String get deleteSavingsGoal => 'Delete sinking fund';
+
+  @override
   String goalDeadline(Object date, Object days) {
     return 'Target date: $date · $days days left';
   }

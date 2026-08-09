@@ -317,6 +317,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get purgeSavingsGoal => '永久删除';
 
   @override
+  String get deleteSavingsGoal => '删除专项储蓄';
+
+  @override
   String goalDeadline(Object date, Object days) {
     return '目标日期: $date · 剩余 $days 天';
   }

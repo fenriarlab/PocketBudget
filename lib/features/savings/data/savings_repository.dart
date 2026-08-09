@@ -264,8 +264,9 @@ class SavingsRepository {
       final goalRows = await txn.query('savings_goals',
           columns: ['status'], where: 'id = ?', whereArgs: [id], limit: 1);
       if (goalRows.isEmpty ||
-          goalRows.first['status'] != SavingsGoalStatus.archived.name) {
-        throw StateError('只有已归档且没有流水的专项储蓄可以永久删除');
+          (goalRows.first['status'] != SavingsGoalStatus.active.name &&
+              goalRows.first['status'] != SavingsGoalStatus.archived.name)) {
+        throw StateError('只有没有流水的专项储蓄可以永久删除');
       }
 
       final logs = await txn.query('savings_logs',

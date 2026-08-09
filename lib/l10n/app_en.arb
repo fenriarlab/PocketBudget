@@ -96,6 +96,7 @@
   ,"archiveSavingsGoal": "Archive sinking fund"
   ,"restoreSavingsGoal": "Restore sinking fund"
   ,"purgeSavingsGoal": "Delete permanently"
+  ,"deleteSavingsGoal": "Delete sinking fund"
   ,"goalDeadline": "Target date: {date} · {days} days left"
   ,"savedAmount": "Saved: {amount}"
   ,"targetAmount": "Target: {amount}"

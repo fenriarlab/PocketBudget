@@ -177,9 +177,12 @@ class SavingsGoalsSection extends StatelessWidget {
               if (archived)
                 PopupMenuItem(
                     value: 'restore', child: Text(l10n.restoreSavingsGoal)),
-              if (archived && goal.currentAmount == 0)
+              if (goal.currentAmount == 0)
                 PopupMenuItem(
-                    value: 'purge', child: Text(l10n.purgeSavingsGoal)),
+                    value: 'purge',
+                    child: Text(archived
+                        ? l10n.purgeSavingsGoal
+                        : l10n.deleteSavingsGoal)),
             ],
           ),
         ]),
