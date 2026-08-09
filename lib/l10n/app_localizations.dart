@@ -1189,6 +1189,48 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'保存预算'**
   String get saveBudget;
+
+  /// No description provided for @exportReadableBackup.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出可读备份'**
+  String get exportReadableBackup;
+
+  /// No description provided for @readableBackupWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅用于查看和审计；此文件未加密，不能用于恢复。'**
+  String get readableBackupWarning;
+
+  /// No description provided for @exportEncryptedBackup.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出加密备份'**
+  String get exportEncryptedBackup;
+
+  /// No description provided for @restoreEncryptedBackup.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复加密备份'**
+  String get restoreEncryptedBackup;
+
+  /// No description provided for @backupPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份密码（至少 8 个字符）'**
+  String get backupPassword;
+
+  /// No description provided for @confirmBackupPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认备份密码'**
+  String get confirmBackupPassword;
+
+  /// No description provided for @continueLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续'**
+  String get continueLabel;
 }
 
 class _AppLocalizationsDelegate

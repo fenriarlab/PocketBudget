@@ -12,6 +12,9 @@ class SettingsScreen extends StatelessWidget {
   final ValueChanged<bool> onPrivacyDefaultChanged;
   final String currencyCode;
   final Future<void> Function()? onResetData;
+  final VoidCallback? onExportReadableBackup;
+  final VoidCallback? onExportEncryptedBackup;
+  final VoidCallback? onRestoreBackup;
 
   const SettingsScreen(
       {super.key,
@@ -22,7 +25,10 @@ class SettingsScreen extends StatelessWidget {
       required this.privacyDefaultHidden,
       required this.onPrivacyDefaultChanged,
       this.currencyCode = 'CNY',
-      this.onResetData});
+      this.onResetData,
+      this.onExportReadableBackup,
+      this.onExportEncryptedBackup,
+      this.onRestoreBackup});
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +94,41 @@ class SettingsScreen extends StatelessWidget {
               textColor: Theme.of(context).colorScheme.error,
               iconColor: Theme.of(context).colorScheme.error,
               onTap: onResetData,
+            ),
+          ),
+        ],
+        if (onExportReadableBackup != null ||
+            onExportEncryptedBackup != null ||
+            onRestoreBackup != null) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.backup_outlined),
+                  title: Text(l10n.offlineBackup),
+                  subtitle: Text(l10n.offlineBackupHint),
+                ),
+                if (onExportReadableBackup != null)
+                  ListTile(
+                    leading: const Icon(Icons.description_outlined),
+                    title: Text(l10n.exportReadableBackup),
+                    subtitle: Text(l10n.readableBackupWarning),
+                    onTap: onExportReadableBackup,
+                  ),
+                if (onExportEncryptedBackup != null)
+                  ListTile(
+                    leading: const Icon(Icons.lock_outline),
+                    title: Text(l10n.exportEncryptedBackup),
+                    onTap: onExportEncryptedBackup,
+                  ),
+                if (onRestoreBackup != null)
+                  ListTile(
+                    leading: const Icon(Icons.restore_outlined),
+                    title: Text(l10n.restoreEncryptedBackup),
+                    onTap: onRestoreBackup,
+                  ),
+              ],
             ),
           ),
         ],

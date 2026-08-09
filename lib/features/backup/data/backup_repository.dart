@@ -1,168 +1,137 @@
 import 'dart:convert';
-import 'package:sqflite/sqflite.dart';
+
 import '../../../../core/database/database_helper.dart';
-import '../../savings/data/models/savings_goal_model.dart';
+import 'backup_crypto_service.dart';
+import 'backup_payload_migrator.dart';
+import 'models/backup_envelope.dart';
+
+class BackupRepositoryException implements Exception {
+  final String message;
+
+  const BackupRepositoryException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class BackupRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final BackupCryptoService _cryptoService;
 
-  /// 导出 SQLite 数据库中所有表的数据为 JSON 格式
-  Future<String> exportBackupJson({required String currencyCode}) async {
-    final db = await _dbHelper.database;
+  BackupRepository({BackupCryptoService? cryptoService})
+      : _cryptoService = cryptoService ?? BackupCryptoService();
 
-    final categories = await db.query('categories');
-    final transactions = await db.query('transactions');
-    final savingsGoals = await db.query('savings_goals');
-    final savingsLogs = await db.query('savings_logs');
-    final budgetAllocations = await db.query('budget_allocations');
-    final budgets = await db.query('budgets');
-
-    final backupMap = {
+  Future<String> exportReadableJson({required String currencyCode}) async {
+    final payload = await _buildPayload();
+    return const JsonEncoder.withIndent('  ').convert({
       'app': 'PocketBudget',
-      'version': 2,
-      'schema_version': 1,
-      'app_version': '1.0.0',
+      'backup_format_version': BackupEnvelope.currentFormatVersion,
+      'backup_schema_version': BackupPayloadMigrator.currentSchemaVersion,
+      'database_schema_version': DatabaseHelper.currentDatabaseVersion,
       'currency_code': currencyCode,
       'exported_at': DateTime.now().toIso8601String(),
-      'data': {
-        'categories': categories,
-        'transactions': transactions,
-        'savings_goals': savingsGoals,
-        'savings_logs': savingsLogs,
-        'budget_allocations': budgetAllocations,
-        'budgets': budgets,
-      }
-    };
-
-    return const JsonEncoder.withIndent('  ').convert(backupMap);
+      'encrypted': false,
+      'restorable': false,
+      'data': payload['data'],
+    });
   }
 
-  /// 从备份 JSON 字符串无缝还原所有表数据
-  Future<bool> restoreBackupJson(String jsonStr,
-      {required String expectedCurrencyCode}) async {
+  Future<String> exportEncryptedJson({
+    required String currencyCode,
+    required String password,
+  }) async {
+    final payload = await _buildPayload();
+    final encrypted = await _cryptoService.encrypt(
+      jsonEncode(payload),
+      password,
+      aad: _aad(currencyCode, DatabaseHelper.currentDatabaseVersion),
+    );
+    final envelope = BackupEnvelope(
+      currencyCode: currencyCode,
+      exportedAt: DateTime.now().toIso8601String(),
+      databaseSchemaVersion: DatabaseHelper.currentDatabaseVersion,
+      encryption: encrypted.toMap(),
+      ciphertextBase64: encrypted.ciphertextBase64,
+    );
+    return const JsonEncoder.withIndent('  ').convert(envelope.toMap());
+  }
+
+  Future<void> restoreEncryptedJson(
+    String jsonStr, {
+    required String expectedCurrencyCode,
+    required String password,
+  }) async {
     try {
-      final Map<String, dynamic> backupMap = jsonDecode(jsonStr);
-      if (!backupMap.containsKey('data')) return false;
-      final backupCurrency = backupMap['currency_code'] as String? ?? 'CNY';
-      if (backupCurrency != expectedCurrencyCode) return false;
-
-      final data = backupMap['data'] as Map<String, dynamic>;
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is! Map) throw const FormatException('Invalid backup JSON');
+      final envelope =
+          BackupEnvelope.fromMap(Map<String, dynamic>.from(decoded));
+      if (envelope.currencyCode != expectedCurrencyCode) {
+        throw const BackupRepositoryException('Backup currency does not match');
+      }
+      if (envelope.databaseSchemaVersion >
+          DatabaseHelper.currentDatabaseVersion) {
+        throw const BackupRepositoryException(
+            'Backup database version is newer than this app');
+      }
+      final encryption = envelope.encryption;
+      final encrypted = EncryptedBackupPayload(
+        ciphertextBase64: envelope.ciphertextBase64,
+        saltBase64: _stringField(encryption, 'salt_base64'),
+        nonceBase64: _stringField(encryption, 'nonce_base64'),
+        macBase64: _stringField(encryption, 'mac_base64'),
+        iterations: encryption['iterations'] as int,
+      );
+      final payloadJson = await _cryptoService.decrypt(
+        encrypted,
+        password,
+        aad: _aad(expectedCurrencyCode, envelope.databaseSchemaVersion),
+      );
+      final payload = jsonDecode(payloadJson);
+      if (payload is! Map) {
+        throw const FormatException('Invalid backup payload');
+      }
+      final normalized =
+          BackupPayloadMigrator.normalize(Map<String, dynamic>.from(payload));
       final db = await _dbHelper.database;
-
-      await db.transaction((txn) async {
-        // 清空原有数据
-        await txn.delete('transactions');
-        await txn.delete('savings_goals');
-        await txn.delete('savings_logs');
-        await txn.delete('budget_allocations');
-        await txn.delete('budgets');
-
-        final transactionIds = <String>{};
-
-        // 还原交易记录
-        if (data.containsKey('transactions')) {
-          final txs = data['transactions'] as List<dynamic>;
-          for (var item in txs) {
-            final transaction = Map<String, dynamic>.from(item as Map);
-            transactionIds.add(transaction['id'] as String);
-            await txn.insert('transactions', transaction);
-          }
-        }
-
-        // 还原存钱目标
-        if (data.containsKey('savings_goals')) {
-          final goals = data['savings_goals'] as List<dynamic>;
-          for (var item in goals) {
-            final goal = Map<String, dynamic>.from(item as Map);
-            final status = goal['status'];
-            goal['status'] = status == SavingsGoalStatus.archived.name
-                ? SavingsGoalStatus.archived.name
-                : SavingsGoalStatus.active.name;
-            goal['current_amount'] =
-                (goal['current_amount'] as num?)?.toDouble() ?? 0.0;
-            await txn.insert('savings_goals', goal);
-          }
-        }
-
-        // 还原存钱流水
-        if (data.containsKey('savings_logs')) {
-          final logs = data['savings_logs'] as List<dynamic>;
-          for (var item in logs) {
-            final log = Map<String, dynamic>.from(item as Map);
-            final logId = log['id'] as String;
-            final inferredTransactionId = 'tx_savings_$logId';
-            final linkedTransactionId =
-                log['linked_transaction_id'] as String? ??
-                    (transactionIds.contains(inferredTransactionId)
-                        ? inferredTransactionId
-                        : null);
-            log['linked_transaction_id'] = null;
-            log['deduct_from_budget'] = log['deduct_from_budget'] ??
-                (linkedTransactionId == null ? 0 : 1);
-            await txn.insert('savings_logs', log);
-            if (linkedTransactionId != null) {
-              await txn.insert(
-                  'budget_allocations',
-                  {
-                    'id': 'allocation_$logId',
-                    'period': _periodFromTimestamp(log['created_at'] as int),
-                    'savings_log_id': logId,
-                    'allocated_amount': log['amount'],
-                    'created_at': log['created_at'],
-                  },
-                  conflictAlgorithm: ConflictAlgorithm.replace);
-              await txn.delete('transactions',
-                  where: 'id = ?', whereArgs: [linkedTransactionId]);
-            }
-          }
-        }
-
-        if (data.containsKey('budget_allocations')) {
-          final allocations = data['budget_allocations'] as List<dynamic>;
-          for (final item in allocations) {
-            await txn.insert(
-                'budget_allocations', Map<String, dynamic>.from(item as Map),
-                conflictAlgorithm: ConflictAlgorithm.replace);
-          }
-        }
-
-        // 还原预算
-        if (data.containsKey('budgets')) {
-          final budgets = data['budgets'] as List<dynamic>;
-          for (var item in budgets) {
-            await txn.insert('budgets', Map<String, dynamic>.from(item as Map),
-                conflictAlgorithm: ConflictAlgorithm.replace);
-          }
-        }
-
-        // current_amount is a cache; restore it from the authoritative logs.
-        final restoredGoals = await txn.query('savings_goals', columns: ['id']);
-        for (final goal in restoredGoals) {
-          final goalId = goal['id'] as String;
-          final totals = await txn.rawQuery(
-            'SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?',
-            [goalId],
-          );
-          final total = (totals.first['total'] as num?) ?? 0;
-          await txn.update(
-            'savings_goals',
-            {
-              'current_amount': total.toDouble().clamp(0.0, double.infinity),
-            },
-            where: 'id = ?',
-            whereArgs: [goalId],
-          );
-        }
-      });
-
-      return true;
-    } catch (e) {
-      return false;
+      await db.transaction(
+          (txn) => BackupPayloadMigrator.restoreData(txn, normalized));
+    } on BackupRepositoryException {
+      rethrow;
+    } on BackupCryptoException catch (error) {
+      throw BackupRepositoryException(error.message);
+    } on FormatException catch (error) {
+      throw BackupRepositoryException(error.message);
+    } catch (_) {
+      throw const BackupRepositoryException('Backup could not be restored');
     }
   }
 
-  String _periodFromTimestamp(int timestamp) {
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}';
+  Future<Map<String, dynamic>> _buildPayload() async {
+    final db = await _dbHelper.database;
+    return {
+      'schema_version': BackupPayloadMigrator.currentSchemaVersion,
+      'data': {
+        'categories': await db.query('categories'),
+        'transactions': await db.query('transactions'),
+        'savings_goals': await db.query('savings_goals'),
+        'savings_logs': await db.query('savings_logs'),
+        'budget_allocations': await db.query('budget_allocations'),
+        'budgets': await db.query('budgets'),
+      },
+    };
+  }
+
+  List<int> _aad(String currencyCode, int databaseSchemaVersion) => utf8.encode(
+        'PocketBudget|${BackupEnvelope.currentFormatVersion}|'
+        '${BackupPayloadMigrator.currentSchemaVersion}|$databaseSchemaVersion|$currencyCode',
+      );
+
+  String _stringField(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value is! String) {
+      throw FormatException('Invalid encryption field: $key');
+    }
+    return value;
   }
 }

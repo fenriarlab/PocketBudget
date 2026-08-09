@@ -182,4 +182,11 @@
   ,"budgetLimitLabel": "Budget limit"
   ,"nonNegativeBudgetRequired": "Enter a budget amount of 0 or more"
   ,"saveBudget": "Save budget"
+  ,"exportReadableBackup": "Export readable backup"
+  ,"readableBackupWarning": "For viewing and audit only; this file is unencrypted and cannot be restored."
+  ,"exportEncryptedBackup": "Export encrypted backup"
+  ,"restoreEncryptedBackup": "Restore encrypted backup"
+  ,"backupPassword": "Backup password (8+ characters)"
+  ,"confirmBackupPassword": "Confirm backup password"
+  ,"continueLabel": "Continue"
 }

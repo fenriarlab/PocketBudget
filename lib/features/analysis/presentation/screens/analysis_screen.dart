@@ -8,19 +8,15 @@ import '../../../transactions/data/models/transaction_model.dart';
 class AnalysisScreen extends StatelessWidget {
   final List<TransactionModel> transactions;
   final bool privacyHidden;
-  final VoidCallback onExportBackup;
-  final VoidCallback onRestoreBackup;
   final String currencyCode;
 
   const AnalysisScreen(
       {super.key,
       required this.transactions,
       required this.privacyHidden,
-      required this.onExportBackup,
-      required this.onRestoreBackup,
       this.currencyCode = 'CNY'});
 
-    String _amount(double value) => privacyHidden
+  String _amount(double value) => privacyHidden
       ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
       : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
 
@@ -77,35 +73,6 @@ class AnalysisScreen extends StatelessWidget {
                                       color: AppColors.primaryLight),
                                 ]));
                       }),
-                  ]))),
-      const SizedBox(height: 16),
-      Card(
-          child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.offlineBackup,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    Text(l10n.offlineBackupHint,
-                        style: const TextStyle(
-                            color: AppColors.textSecondary, fontSize: 12)),
-                    const SizedBox(height: 14),
-                    Row(children: [
-                      Expanded(
-                          child: OutlinedButton.icon(
-                              onPressed: onExportBackup,
-                              icon: const Icon(Icons.download),
-                              label: Text(l10n.exportJson))),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: ElevatedButton.icon(
-                              onPressed: onRestoreBackup,
-                              icon: const Icon(Icons.upload),
-                              label: Text(l10n.restoreData)))
-                    ]),
                   ]))),
     ]);
   }

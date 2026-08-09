@@ -621,4 +621,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveBudget => 'Save budget';
+
+  @override
+  String get exportReadableBackup => 'Export readable backup';
+
+  @override
+  String get readableBackupWarning =>
+      'For viewing and audit only; this file is unencrypted and cannot be restored.';
+
+  @override
+  String get exportEncryptedBackup => 'Export encrypted backup';
+
+  @override
+  String get restoreEncryptedBackup => 'Restore encrypted backup';
+
+  @override
+  String get backupPassword => 'Backup password (8+ characters)';
+
+  @override
+  String get confirmBackupPassword => 'Confirm backup password';
+
+  @override
+  String get continueLabel => 'Continue';
 }

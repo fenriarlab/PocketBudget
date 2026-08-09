@@ -224,8 +224,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         return AnalysisScreen(
           transactions: _transactions,
           privacyHidden: _privacyHidden,
-          onExportBackup: _showExportBackup,
-          onRestoreBackup: _showRestoreBackup,
           currencyCode: widget.currencyCode,
         );
       case 3:
@@ -236,6 +234,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onLanguageChanged: widget.onLanguageChanged,
           currencyCode: widget.currencyCode,
           onResetData: _confirmAndResetData,
+          onExportReadableBackup: _showExportReadableBackup,
+          onExportEncryptedBackup: _showExportEncryptedBackup,
+          onRestoreBackup: _showRestoreBackup,
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
         );
@@ -486,19 +487,29 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
   }
 
-  Future<void> _showExportBackup() async {
-    final json = await _backupRepository
-        .exportBackupJson(currencyCode: widget.currencyCode);
+  Future<void> _showExportReadableBackup() async {
+    final json = await _backupRepository.exportReadableJson(
+        currencyCode: widget.currencyCode);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-                title: Text(l10n.exportJsonBackup),
+                title: Text(l10n.exportReadableBackup),
                 content: SizedBox(
                     width: 500,
-                    height: 220,
-                    child: SingleChildScrollView(child: SelectableText(json))),
+                    height: 260,
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.readableBackupWarning,
+                              style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error)),
+                          const SizedBox(height: 12),
+                          Expanded(
+                              child: SingleChildScrollView(
+                                  child: SelectableText(json))),
+                        ])),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -513,13 +524,45 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 ]));
   }
 
-  Future<void> _showRestoreBackup() async {
-    final controller = TextEditingController();
+  Future<void> _showExportEncryptedBackup() async {
+    final password = await _promptPassword(confirm: true);
+    if (password == null) return;
     final l10n = AppLocalizations.of(context)!;
+    final json = await _backupRepository.exportEncryptedJson(
+        currencyCode: widget.currencyCode, password: password);
+    if (!mounted) return;
     await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-                title: Text(l10n.restoreJsonBackup),
+              title: Text(l10n.exportEncryptedBackup),
+              content: SizedBox(
+                  width: 500,
+                  height: 220,
+                  child: SingleChildScrollView(child: SelectableText(json))),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.close)),
+                ElevatedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: json));
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.copy),
+                    label: Text(l10n.copy)),
+              ],
+            ));
+  }
+
+  Future<void> _showRestoreBackup() async {
+    final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+    final password = await _promptPassword();
+    if (password == null) return;
+    await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: Text(l10n.restoreEncryptedBackup),
                 content: TextField(
                     controller: controller,
                     maxLines: 8,
@@ -532,20 +575,66 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       child: Text(l10n.cancel)),
                   ElevatedButton(
                       onPressed: () async {
-                        final success = await _backupRepository
-                            .restoreBackupJson(controller.text.trim(),
-                                expectedCurrencyCode: widget.currencyCode);
-                        if (context.mounted) Navigator.pop(context);
-                        if (success) {
-                          _loadData();
-                        } else if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                              SnackBar(content: Text(l10n.currencyMismatch)));
+                        try {
+                          await _backupRepository.restoreEncryptedJson(
+                              controller.text.trim(),
+                              expectedCurrencyCode: widget.currencyCode,
+                              password: password);
+                          if (context.mounted) Navigator.pop(context);
+                          if (mounted) _loadData();
+                        } on BackupRepositoryException catch (error) {
+                          if (mounted)
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                                SnackBar(content: Text(error.message)));
                         }
                       },
                       child: Text(l10n.overwriteRestore))
                 ]));
     controller.dispose();
+  }
+
+  Future<String?> _promptPassword({bool confirm = false}) async {
+    final l10n = AppLocalizations.of(context)!;
+    final passwordController = TextEditingController();
+    final confirmationController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+            confirm ? l10n.exportEncryptedBackup : l10n.restoreEncryptedBackup),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: passwordController,
+            obscureText: true,
+            decoration: InputDecoration(labelText: l10n.backupPassword),
+          ),
+          if (confirm)
+            TextField(
+              controller: confirmationController,
+              obscureText: true,
+              decoration:
+                  InputDecoration(labelText: l10n.confirmBackupPassword),
+            ),
+        ]),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel)),
+          FilledButton(
+            onPressed: () {
+              final password = passwordController.text;
+              if (password.length < 8 ||
+                  (confirm && password != confirmationController.text)) return;
+              Navigator.pop(dialogContext, password);
+            },
+            child: Text(l10n.continueLabel),
+          ),
+        ],
+      ),
+    );
+    passwordController.dispose();
+    confirmationController.dispose();
+    return result;
   }
 
   Future<void> _confirmAndResetData() async {
@@ -559,7 +648,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                _showExportBackup();
+                _showExportReadableBackup();
               },
               child: Text(l10n.exportJsonBackup)),
           TextButton(

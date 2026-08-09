@@ -4,11 +4,13 @@ import 'package:path/path.dart';
 /// 100% 本地存储数据库服务 (SQLite)
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
+  static const int currentDatabaseVersion = 5;
   static Database? _database;
 
   DatabaseHelper._init();
 
-  Future<void> createSchemaForTest(Database db) => _createDB(db, 5);
+  Future<void> createSchemaForTest(Database db) =>
+      _createDB(db, currentDatabaseVersion);
 
   Future<void> upgradeSchemaForTest(
     Database db,
@@ -54,7 +56,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: currentDatabaseVersion,
       onCreate: _createDB,
       onUpgrade: _onUpgradeDB,
     );

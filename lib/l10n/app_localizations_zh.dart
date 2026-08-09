@@ -605,4 +605,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get saveBudget => '保存预算';
+
+  @override
+  String get exportReadableBackup => '导出可读备份';
+
+  @override
+  String get readableBackupWarning => '仅用于查看和审计；此文件未加密，不能用于恢复。';
+
+  @override
+  String get exportEncryptedBackup => '导出加密备份';
+
+  @override
+  String get restoreEncryptedBackup => '恢复加密备份';
+
+  @override
+  String get backupPassword => '备份密码（至少 8 个字符）';
+
+  @override
+  String get confirmBackupPassword => '确认备份密码';
+
+  @override
+  String get continueLabel => '继续';
 }

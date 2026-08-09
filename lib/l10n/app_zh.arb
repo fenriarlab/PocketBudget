@@ -182,4 +182,11 @@
   ,"budgetLimitLabel": "预算上限"
   ,"nonNegativeBudgetRequired": "请输入不小于 0 的预算金额"
   ,"saveBudget": "保存预算"
+  ,"exportReadableBackup": "导出可读备份"
+  ,"readableBackupWarning": "仅用于查看和审计；此文件未加密，不能用于恢复。"
+  ,"exportEncryptedBackup": "导出加密备份"
+  ,"restoreEncryptedBackup": "恢复加密备份"
+  ,"backupPassword": "备份密码（至少 8 个字符）"
+  ,"confirmBackupPassword": "确认备份密码"
+  ,"continueLabel": "继续"
 }
