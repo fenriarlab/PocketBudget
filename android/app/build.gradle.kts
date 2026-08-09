@@ -34,6 +34,31 @@ android {
     }
 }
 
+// Create a versioned copy alongside Flutter's default release APK.
+tasks.configureEach {
+    if (name == "assembleRelease") {
+        doLast {
+            val versionName = project.findProperty("version-name")?.toString()
+                ?: android.defaultConfig.versionName
+                ?: "0.0.1"
+
+            val flutterApkDir = file("../../build/app/outputs/flutter-apk")
+            val releaseApkDir = file("${layout.buildDirectory.get()}/outputs/apk/release")
+            val targetName = "PocketBudget_v${versionName}_release.apk"
+
+            val defaultFlutterApk = file("$flutterApkDir/app-release.apk")
+            if (defaultFlutterApk.exists()) {
+                defaultFlutterApk.copyTo(file("$flutterApkDir/$targetName"), overwrite = true)
+            }
+
+            val defaultReleaseApk = file("$releaseApkDir/app-release.apk")
+            if (defaultReleaseApk.exists()) {
+                defaultReleaseApk.copyTo(file("$releaseApkDir/$targetName"), overwrite = true)
+            }
+        }
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
