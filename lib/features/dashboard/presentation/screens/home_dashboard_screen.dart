@@ -555,86 +555,46 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showRestoreBackup() async {
-    final controller = TextEditingController();
     final l10n = AppLocalizations.of(context)!;
     final password = await _promptPassword();
     if (password == null) return;
     await showDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
-                title: Text(l10n.restoreEncryptedBackup),
-                content: TextField(
-                    controller: controller,
-                    maxLines: 8,
-                    decoration: InputDecoration(
-                        hintText: l10n.pasteBackupJson,
-                        border: OutlineInputBorder())),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(l10n.cancel)),
-                  ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await _backupRepository.restoreEncryptedJson(
-                              controller.text.trim(),
-                              expectedCurrencyCode: widget.currencyCode,
-                              password: password);
-                          if (context.mounted) Navigator.pop(context);
-                          if (mounted) _loadData();
-                        } on BackupRepositoryException catch (error) {
-                          if (mounted)
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                                SnackBar(content: Text(error.message)));
-                        }
-                      },
-                      child: Text(l10n.overwriteRestore))
-                ]));
-    controller.dispose();
+        builder: (context) => _RestoreBackupDialog(
+              title: l10n.restoreEncryptedBackup,
+              hintText: l10n.pasteBackupJson,
+              cancelLabel: l10n.cancel,
+              restoreLabel: l10n.overwriteRestore,
+              onRestore: (json) async {
+                try {
+                  await _backupRepository.restoreEncryptedJson(json,
+                      expectedCurrencyCode: widget.currencyCode,
+                      password: password);
+                  if (context.mounted) Navigator.pop(context);
+                  if (mounted) _loadData();
+                } on BackupRepositoryException catch (error) {
+                  if (mounted)
+                    ScaffoldMessenger.of(this.context)
+                        .showSnackBar(SnackBar(content: Text(error.message)));
+                }
+              },
+            ));
   }
 
   Future<String?> _promptPassword({bool confirm = false}) async {
     final l10n = AppLocalizations.of(context)!;
-    final passwordController = TextEditingController();
-    final confirmationController = TextEditingController();
-    final result = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-            confirm ? l10n.exportEncryptedBackup : l10n.restoreEncryptedBackup),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(
-            controller: passwordController,
-            obscureText: true,
-            decoration: InputDecoration(labelText: l10n.backupPassword),
-          ),
-          if (confirm)
-            TextField(
-              controller: confirmationController,
-              obscureText: true,
-              decoration:
-                  InputDecoration(labelText: l10n.confirmBackupPassword),
-            ),
-        ]),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(l10n.cancel)),
-          FilledButton(
-            onPressed: () {
-              final password = passwordController.text;
-              if (password.length < 8 ||
-                  (confirm && password != confirmationController.text)) return;
-              Navigator.pop(dialogContext, password);
-            },
-            child: Text(l10n.continueLabel),
-          ),
-        ],
+      builder: (dialogContext) => _BackupPasswordDialog(
+        title:
+            confirm ? l10n.exportEncryptedBackup : l10n.restoreEncryptedBackup,
+        passwordLabel: l10n.backupPassword,
+        confirmationLabel: l10n.confirmBackupPassword,
+        cancelLabel: l10n.cancel,
+        continueLabel: l10n.continueLabel,
+        confirm: confirm,
       ),
     );
-    passwordController.dispose();
-    confirmationController.dispose();
-    return result;
   }
 
   Future<void> _confirmAndResetData() async {
@@ -663,6 +623,136 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (confirmed != true) return;
     await DatabaseHelper.instance.resetFinancialData();
     await widget.onCurrencyReset();
+  }
+}
+
+class _BackupPasswordDialog extends StatefulWidget {
+  final String title;
+  final String passwordLabel;
+  final String confirmationLabel;
+  final String cancelLabel;
+  final String continueLabel;
+  final bool confirm;
+
+  const _BackupPasswordDialog({
+    required this.title,
+    required this.passwordLabel,
+    required this.confirmationLabel,
+    required this.cancelLabel,
+    required this.continueLabel,
+    required this.confirm,
+  });
+
+  @override
+  State<_BackupPasswordDialog> createState() => _BackupPasswordDialogState();
+}
+
+class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
+  final _passwordController = TextEditingController();
+  final _confirmationController = TextEditingController();
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final password = _passwordController.text;
+    final confirmation = _confirmationController.text;
+    final canContinue =
+        password.length >= 8 && (!widget.confirm || password == confirmation);
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(labelText: widget.passwordLabel),
+            ),
+            if (widget.confirm)
+              TextField(
+                controller: _confirmationController,
+                obscureText: true,
+                onChanged: (_) => setState(() {}),
+                decoration:
+                    InputDecoration(labelText: widget.confirmationLabel),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.cancelLabel)),
+        FilledButton(
+          onPressed: canContinue
+              ? () => Navigator.pop(context, _passwordController.text)
+              : null,
+          child: Text(widget.continueLabel),
+        ),
+      ],
+    );
+  }
+}
+
+class _RestoreBackupDialog extends StatefulWidget {
+  final String title;
+  final String hintText;
+  final String cancelLabel;
+  final String restoreLabel;
+  final Future<void> Function(String json) onRestore;
+
+  const _RestoreBackupDialog({
+    required this.title,
+    required this.hintText,
+    required this.cancelLabel,
+    required this.restoreLabel,
+    required this.onRestore,
+  });
+
+  @override
+  State<_RestoreBackupDialog> createState() => _RestoreBackupDialogState();
+}
+
+class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: 500,
+        child: TextField(
+          controller: _controller,
+          minLines: 4,
+          maxLines: 8,
+          decoration: InputDecoration(
+              hintText: widget.hintText, border: const OutlineInputBorder()),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.cancelLabel)),
+        ElevatedButton(
+            onPressed: () => widget.onRestore(_controller.text.trim()),
+            child: Text(widget.restoreLabel)),
+      ],
+    );
   }
 }
 
