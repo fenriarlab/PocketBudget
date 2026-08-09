@@ -21,7 +21,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabTransactions => 'Transactions';
 
   @override
-  String get tabSavings => 'Savings';
+  String get tabSavings => 'Sinking Funds';
 
   @override
   String get tabBudget => 'Budget';
@@ -43,19 +43,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dailyAssessmentTip =>
-      '15 days remaining this month. Keep daily spending below this amount to stay on budget.';
+      '15 days remaining this month. Keep daily spending below this amount to stay on track with your sinking funds.';
 
   @override
   String get monthlyExpense => 'Total Expense';
 
   @override
-  String get savingsAccumulated => 'Total Savings';
+  String get savingsAccumulated => 'Sinking Funds Total';
 
   @override
   String get transactionsTitle => 'Transaction History (100% Offline)';
 
   @override
-  String get savingsGoalsTitle => 'Savings Goals';
+  String get savingsGoalsTitle => 'Sinking Funds';
 
   @override
   String get budgetSettingTitle => 'Monthly Budget Limit';

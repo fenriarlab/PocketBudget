@@ -5,7 +5,8 @@ import 'package:pocket_budget/features/savings/data/models/savings_goal_model.da
 import 'package:pocket_budget/features/savings/data/models/savings_log_model.dart';
 
 void main() {
-  testWidgets('savings goal sheet closes after creating a goal', (tester) async {
+  testWidgets('savings goal sheet closes after creating a goal',
+      (tester) async {
     SavingsGoalModel? savedGoal;
 
     await tester.pumpWidget(MaterialApp(
@@ -30,29 +31,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '旅行基金');
     await tester.enterText(find.byType(TextField).at(1), '5000');
-    await tester.tap(find.text('创建目标'));
+    await tester.tap(find.text('创建专项储蓄'));
     await tester.pumpAndSettle();
 
     expect(savedGoal?.title, '旅行基金');
     expect(savedGoal?.targetAmount, 5000);
-    expect(find.text('新建存钱目标'), findsNothing);
+    expect(find.text('新建专项储蓄'), findsNothing);
   });
 
-  testWidgets('savings goal sheet shows validation errors for empty input', (tester) async {
+  testWidgets('savings goal sheet shows validation errors for empty input',
+      (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: SavingsGoalSheet(onSave: (_) async {}),
       ),
     ));
 
-    await tester.tap(find.text('创建目标'));
+    await tester.tap(find.text('创建专项储蓄'));
     await tester.pump();
 
     expect(find.text('请输入目标名称'), findsOneWidget);
     expect(find.text('请输入大于 0 的目标金额'), findsOneWidget);
   });
 
-  testWidgets('withdrawal sheet blocks amounts above the current balance', (tester) async {
+  testWidgets('withdrawal sheet blocks amounts above the current balance',
+      (tester) async {
     final goal = SavingsGoalModel(
       id: 'goal-1',
       title: '旅行基金',
@@ -65,7 +68,10 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: SavingsDepositSheet(goal: goal, isWithdraw: true, onSave: (_, __) async => saved = true),
+        body: SavingsDepositSheet(
+            goal: goal,
+            isWithdraw: true,
+            onSave: (_, __) async => saved = true),
       ),
     ));
 
@@ -77,7 +83,8 @@ void main() {
     expect(saved, isFalse);
   });
 
-  testWidgets('editing a savings log prefills values and keeps its identity', (tester) async {
+  testWidgets('editing a savings log prefills values and keeps its identity',
+      (tester) async {
     final goal = SavingsGoalModel(
       id: 'goal-1',
       title: '旅行基金',

@@ -29,6 +29,31 @@ class SavingsRepository {
     await db.insert('savings_goals', goal.toMap());
   }
 
+  Future<void> updateGoal(SavingsGoalModel goal) async {
+    final title = goal.title.trim();
+    if (title.isEmpty) {
+      throw ArgumentError('专项储蓄名称不能为空');
+    }
+    if (goal.targetAmount <= 0) {
+      throw ArgumentError('目标金额必须大于 0');
+    }
+
+    final db = await _dbHelper.database;
+    final updated = await db.update(
+      'savings_goals',
+      {
+        'title': title,
+        'target_amount': goal.targetAmount,
+        'target_date': goal.targetDate.millisecondsSinceEpoch,
+      },
+      where: 'id = ?',
+      whereArgs: [goal.id],
+    );
+    if (updated == 0) {
+      throw StateError('专项储蓄不存在');
+    }
+  }
+
   Future<List<SavingsGoalModel>> getAllGoals() async {
     final db = await _dbHelper.database;
     final maps = await db.query(
@@ -72,6 +97,9 @@ class SavingsRepository {
       final maps = await txn
           .query('savings_goals', where: 'id = ?', whereArgs: [log.goalId]);
       if (maps.isEmpty) return;
+      if (maps.first['status'] != SavingsGoalStatus.active.name) {
+        throw StateError('归档的专项储蓄需要恢复后才能记录流水');
+      }
 
       const linkedTransactionId = null;
       final persistedLog = log.toMap()
@@ -103,6 +131,12 @@ class SavingsRepository {
 
       final log = logs.first;
       final goalId = log['goal_id'] as String;
+      final goalRows = await txn.query('savings_goals',
+          columns: ['status'], where: 'id = ?', whereArgs: [goalId], limit: 1);
+      if (goalRows.isNotEmpty &&
+          goalRows.first['status'] != SavingsGoalStatus.active.name) {
+        throw StateError('归档的专项储蓄需要恢复后才能删除流水');
+      }
       final transactionId = log['linked_transaction_id'] as String?;
       if (transactionId != null) {
         await txn.delete('transactions',
@@ -128,6 +162,9 @@ class SavingsRepository {
       final goalRows = await txn.query('savings_goals',
           where: 'id = ?', whereArgs: [log.goalId], limit: 1);
       if (goalRows.isEmpty) return;
+      if (goalRows.first['status'] != SavingsGoalStatus.active.name) {
+        throw StateError('归档的专项储蓄需要恢复后才能编辑流水');
+      }
 
       final totals = await txn.rawQuery(
         'SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ? AND id != ?',
@@ -192,22 +229,24 @@ class SavingsRepository {
 
   Future<void> archiveGoal(String id) async {
     final db = await _dbHelper.database;
-    await db.update(
+    final updated = await db.update(
       'savings_goals',
       {'status': SavingsGoalStatus.archived.name},
       where: 'id = ?',
       whereArgs: [id],
     );
+    if (updated == 0) throw StateError('专项储蓄不存在');
   }
 
   Future<void> restoreGoal(String id) async {
     final db = await _dbHelper.database;
-    await db.update(
+    final updated = await db.update(
       'savings_goals',
       {'status': SavingsGoalStatus.active.name},
       where: 'id = ?',
       whereArgs: [id],
     );
+    if (updated == 0) throw StateError('专项储蓄不存在');
   }
 
   Future<void> purgeEmptyGoal(String id) async {
@@ -219,7 +258,14 @@ class SavingsRepository {
           )) ??
           0;
       if (logCount > 0) {
-        throw StateError('Goals with savings history must be archived');
+        throw StateError('有历史流水的专项储蓄不能永久删除');
+      }
+
+      final goalRows = await txn.query('savings_goals',
+          columns: ['status'], where: 'id = ?', whereArgs: [id], limit: 1);
+      if (goalRows.isEmpty ||
+          goalRows.first['status'] != SavingsGoalStatus.archived.name) {
+        throw StateError('只有已归档且没有流水的专项储蓄可以永久删除');
       }
 
       final logs = await txn.query('savings_logs',

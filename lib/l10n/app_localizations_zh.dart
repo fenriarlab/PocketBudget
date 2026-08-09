@@ -21,7 +21,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tabTransactions => '明细';
 
   @override
-  String get tabSavings => '存钱计划';
+  String get tabSavings => '专项储蓄';
 
   @override
   String get tabBudget => '预算评估';
@@ -42,19 +42,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dailyAssessmentTitle => '日均健康度控制';
 
   @override
-  String get dailyAssessmentTip => '本月还剩 15 天，控制每日支出低于该数值即可达成存钱目标。';
+  String get dailyAssessmentTip => '本月还剩 15 天，控制每日支出低于该数值即可完成专项储蓄计划。';
 
   @override
   String get monthlyExpense => '本月总支出';
 
   @override
-  String get savingsAccumulated => '存钱总积攒';
+  String get savingsAccumulated => '专项储蓄累计';
 
   @override
   String get transactionsTitle => '账单交易明细 (本地纯净无追踪)';
 
   @override
-  String get savingsGoalsTitle => '存钱计划 (目标看板)';
+  String get savingsGoalsTitle => '专项储蓄 (目标看板)';
 
   @override
   String get budgetSettingTitle => '月度预算设定';

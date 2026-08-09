@@ -125,7 +125,7 @@ abstract class AppLocalizations {
   /// No description provided for @tabSavings.
   ///
   /// In zh, this message translates to:
-  /// **'存钱计划'**
+  /// **'专项储蓄'**
   String get tabSavings;
 
   /// No description provided for @tabBudget.
@@ -167,7 +167,7 @@ abstract class AppLocalizations {
   /// No description provided for @dailyAssessmentTip.
   ///
   /// In zh, this message translates to:
-  /// **'本月还剩 15 天，控制每日支出低于该数值即可达成存钱目标。'**
+  /// **'本月还剩 15 天，控制每日支出低于该数值即可完成专项储蓄计划。'**
   String get dailyAssessmentTip;
 
   /// No description provided for @monthlyExpense.
@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @savingsAccumulated.
   ///
   /// In zh, this message translates to:
-  /// **'存钱总积攒'**
+  /// **'专项储蓄累计'**
   String get savingsAccumulated;
 
   /// No description provided for @transactionsTitle.
@@ -191,7 +191,7 @@ abstract class AppLocalizations {
   /// No description provided for @savingsGoalsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'存钱计划 (目标看板)'**
+  /// **'专项储蓄 (目标看板)'**
   String get savingsGoalsTitle;
 
   /// No description provided for @budgetSettingTitle.

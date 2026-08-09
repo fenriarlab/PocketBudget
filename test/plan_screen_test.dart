@@ -24,7 +24,10 @@ void main() {
           monthlyExpense: 2500,
           onEditBudget: () {},
           onAddGoal: () {},
-          onDelete: (_) {},
+          onArchive: (_) {},
+          onEdit: (_) {},
+          onRestore: (_) {},
+          onPurge: (_) {},
           onHistory: (_) {},
           onDeposit: (_, __) {},
         ),
@@ -37,7 +40,7 @@ void main() {
 
     expect(find.text('¥ 10,000.00'), findsOneWidget);
     expect(find.text('¥ 2,500.00'), findsOneWidget);
-    expect(find.text('进行中'), findsOneWidget);
+    expect(find.text('进行中'), findsNWidgets(2));
   });
 
   testWidgets('plan screen masks budget and goal amounts in privacy mode', (tester) async {

@@ -47,6 +47,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   DateTime _selectedDate = DateTime.now();
   List<TransactionModel> _transactions = [];
   List<SavingsGoalModel> _goals = [];
+  List<SavingsGoalModel> _archivedGoals = [];
   double? _monthlyBudget;
   double _monthlyExpense = 0;
   double _monthlyIncome = 0;
@@ -93,6 +94,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<void> _loadData() async {
     final transactions = await _transactionRepository.getAllTransactions();
     final goals = await _savingsRepository.getAllGoals();
+    final archivedGoals = await _savingsRepository.getArchivedGoals();
     final savingsLogs = await _savingsRepository.getAllLogs();
     final budget = await _budgetRepository.getBudget(_currentPeriod);
     final budgetAllocations =
@@ -108,6 +110,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     setState(() {
       _transactions = transactions;
       _goals = goals;
+      _archivedGoals = archivedGoals;
       _monthlyExpense = snapshot.consumption;
       _monthlyIncome = snapshot.income;
       _monthlyBudgetedSavings = snapshot.budgetedSavings;
@@ -179,6 +182,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       case 1:
         return PlanScreen(
           goals: _goals,
+          archivedGoals: _archivedGoals,
           privacyHidden: _privacyHidden,
           currentPeriod: _currentPeriod,
           monthlyBudget: _monthlyBudget,
@@ -186,9 +190,18 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           monthlyBudgetedSavings: _monthlyBudgetedSavings,
           onEditBudget: () => _showBudgetSheet(),
           onAddGoal: _showGoalSheet,
-          onDelete: (goal) async {
+          onArchive: (goal) async {
             await _savingsRepository.archiveGoal(goal.id);
-            _loadData();
+            await _loadData();
+          },
+          onEdit: _showEditGoalSheet,
+          onRestore: (goal) async {
+            await _savingsRepository.restoreGoal(goal.id);
+            await _loadData();
+          },
+          onPurge: (goal) async {
+            await _savingsRepository.purgeEmptyGoal(goal.id);
+            await _loadData();
           },
           onHistory: _showGoalHistory,
           onDeposit: _showDepositSheet,
@@ -251,7 +264,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (transaction.id.startsWith('tx_savings_')) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('存钱支出请在计划页的流水明细中删除')));
+            .showSnackBar(const SnackBar(content: Text('专项储蓄支出请在计划页的流水明细中删除')));
       }
       return;
     }
@@ -263,7 +276,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (transaction.id.startsWith('tx_savings_')) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('存钱支出请在计划页的流水明细中编辑')));
+            .showSnackBar(const SnackBar(content: Text('专项储蓄支出请在计划页的流水明细中编辑')));
       }
       return;
     }
@@ -287,6 +300,20 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       builder: (sheetContext) => SavingsGoalSheet(
         onSave: (goal) async {
           await _savingsRepository.insertGoal(goal);
+          if (sheetContext.mounted) Navigator.pop(sheetContext);
+        },
+      ),
+    );
+    if (mounted) _loadData();
+  }
+
+  Future<void> _showEditGoalSheet(SavingsGoalModel goal) async {
+    await _showBottomSheet<void>(
+      isScrollControlled: true,
+      builder: (sheetContext) => SavingsGoalSheet(
+        initialGoal: goal,
+        onSave: (updatedGoal) async {
+          await _savingsRepository.updateGoal(updatedGoal);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
         },
       ),
@@ -621,8 +648,9 @@ class _TransactionSheetState extends State<_TransactionSheet> {
 
 class SavingsGoalSheet extends StatefulWidget {
   final Future<void> Function(SavingsGoalModel goal) onSave;
+  final SavingsGoalModel? initialGoal;
 
-  const SavingsGoalSheet({super.key, required this.onSave});
+  const SavingsGoalSheet({super.key, this.initialGoal, required this.onSave});
 
   @override
   State<SavingsGoalSheet> createState() => _SavingsGoalSheetState();
@@ -635,6 +663,18 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
   String? _titleError;
   String? _amountError;
   bool _isSaving = false;
+  String? _saveError;
+
+  @override
+  void initState() {
+    super.initState();
+    final goal = widget.initialGoal;
+    if (goal != null) {
+      _titleController.text = goal.title;
+      _amountController.text = goal.targetAmount.toStringAsFixed(2);
+      _targetDate = goal.targetDate;
+    }
+  }
 
   @override
   void dispose() {
@@ -652,9 +692,13 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('新建存钱目标',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(widget.initialGoal == null ? '新建专项储蓄' : '编辑专项储蓄',
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
+          if (_saveError != null)
+            Text(_saveError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           TextField(
               controller: _titleController,
               decoration: InputDecoration(
@@ -704,16 +748,37 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
                       });
                       if (_titleError != null || _amountError != null) return;
                       final validAmount = amount!;
-                      setState(() => _isSaving = true);
-                      await widget.onSave(SavingsGoalModel(
-                        id: 'goal_${DateTime.now().microsecondsSinceEpoch}',
-                        title: title,
-                        targetAmount: validAmount,
-                        targetDate: _targetDate,
-                        createdAt: DateTime.now(),
-                      ));
+                      setState(() {
+                        _isSaving = true;
+                        _saveError = null;
+                      });
+                      try {
+                        final initialGoal = widget.initialGoal;
+                        await widget.onSave(SavingsGoalModel(
+                          id: initialGoal?.id ??
+                              'goal_${DateTime.now().microsecondsSinceEpoch}',
+                          title: title,
+                          targetAmount: validAmount,
+                          targetDate: _targetDate,
+                          currentAmount: initialGoal?.currentAmount ?? 0,
+                          createdAt: initialGoal?.createdAt ?? DateTime.now(),
+                          status:
+                              initialGoal?.status ?? SavingsGoalStatus.active,
+                        ));
+                      } catch (error) {
+                        if (mounted) {
+                          setState(() {
+                            _isSaving = false;
+                            _saveError = '保存失败，请重试';
+                          });
+                        }
+                      }
                     },
-              child: Text(_isSaving ? '保存中…' : '创建目标'),
+              child: Text(_isSaving
+                  ? '保存中…'
+                  : widget.initialGoal == null
+                      ? '创建专项储蓄'
+                      : '保存修改'),
             ),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/database_helper.dart';
+import '../../savings/data/models/savings_goal_model.dart';
 
 class BackupRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
@@ -66,7 +67,14 @@ class BackupRepository {
         if (data.containsKey('savings_goals')) {
           final goals = data['savings_goals'] as List<dynamic>;
           for (var item in goals) {
-            await txn.insert('savings_goals', Map<String, dynamic>.from(item as Map));
+            final goal = Map<String, dynamic>.from(item as Map);
+            final status = goal['status'];
+            goal['status'] = status == SavingsGoalStatus.archived.name
+                ? SavingsGoalStatus.archived.name
+                : SavingsGoalStatus.active.name;
+            goal['current_amount'] =
+                (goal['current_amount'] as num?)?.toDouble() ?? 0.0;
+            await txn.insert('savings_goals', goal);
           }
         }
 
@@ -77,19 +85,28 @@ class BackupRepository {
             final log = Map<String, dynamic>.from(item as Map);
             final logId = log['id'] as String;
             final inferredTransactionId = 'tx_savings_$logId';
-            final linkedTransactionId = log['linked_transaction_id'] as String? ?? (transactionIds.contains(inferredTransactionId) ? inferredTransactionId : null);
+            final linkedTransactionId =
+                log['linked_transaction_id'] as String? ??
+                    (transactionIds.contains(inferredTransactionId)
+                        ? inferredTransactionId
+                        : null);
             log['linked_transaction_id'] = null;
-            log['deduct_from_budget'] = log['deduct_from_budget'] ?? (linkedTransactionId == null ? 0 : 1);
+            log['deduct_from_budget'] = log['deduct_from_budget'] ??
+                (linkedTransactionId == null ? 0 : 1);
             await txn.insert('savings_logs', log);
             if (linkedTransactionId != null) {
-              await txn.insert('budget_allocations', {
-                'id': 'allocation_$logId',
-                'period': _periodFromTimestamp(log['created_at'] as int),
-                'savings_log_id': logId,
-                'allocated_amount': log['amount'],
-                'created_at': log['created_at'],
-              }, conflictAlgorithm: ConflictAlgorithm.replace);
-              await txn.delete('transactions', where: 'id = ?', whereArgs: [linkedTransactionId]);
+              await txn.insert(
+                  'budget_allocations',
+                  {
+                    'id': 'allocation_$logId',
+                    'period': _periodFromTimestamp(log['created_at'] as int),
+                    'savings_log_id': logId,
+                    'allocated_amount': log['amount'],
+                    'created_at': log['created_at'],
+                  },
+                  conflictAlgorithm: ConflictAlgorithm.replace);
+              await txn.delete('transactions',
+                  where: 'id = ?', whereArgs: [linkedTransactionId]);
             }
           }
         }
@@ -97,7 +114,9 @@ class BackupRepository {
         if (data.containsKey('budget_allocations')) {
           final allocations = data['budget_allocations'] as List<dynamic>;
           for (final item in allocations) {
-            await txn.insert('budget_allocations', Map<String, dynamic>.from(item as Map), conflictAlgorithm: ConflictAlgorithm.replace);
+            await txn.insert(
+                'budget_allocations', Map<String, dynamic>.from(item as Map),
+                conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
 
@@ -105,8 +124,28 @@ class BackupRepository {
         if (data.containsKey('budgets')) {
           final budgets = data['budgets'] as List<dynamic>;
           for (var item in budgets) {
-            await txn.insert('budgets', Map<String, dynamic>.from(item as Map), conflictAlgorithm: ConflictAlgorithm.replace);
+            await txn.insert('budgets', Map<String, dynamic>.from(item as Map),
+                conflictAlgorithm: ConflictAlgorithm.replace);
           }
+        }
+
+        // current_amount is a cache; restore it from the authoritative logs.
+        final restoredGoals = await txn.query('savings_goals', columns: ['id']);
+        for (final goal in restoredGoals) {
+          final goalId = goal['id'] as String;
+          final totals = await txn.rawQuery(
+            'SELECT COALESCE(SUM(amount), 0) AS total FROM savings_logs WHERE goal_id = ?',
+            [goalId],
+          );
+          final total = (totals.first['total'] as num?) ?? 0;
+          await txn.update(
+            'savings_goals',
+            {
+              'current_amount': total.toDouble().clamp(0.0, double.infinity),
+            },
+            where: 'id = ?',
+            whereArgs: [goalId],
+          );
         }
       });
 
