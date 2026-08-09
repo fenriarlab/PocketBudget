@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/presentation/screens/savings_screen.dart';
 
@@ -47,6 +48,7 @@ class PlanScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final budgetUsed = monthlyExpense + monthlyBudgetedSavings;
     final remaining =
         monthlyBudget == null ? null : monthlyBudget! - budgetUsed;
@@ -66,6 +68,7 @@ class PlanScreen extends StatelessWidget {
           progress: progress,
           amount: _amount,
           onEdit: onEditBudget,
+          l10n: l10n,
         ),
         const SizedBox(height: 20),
         SavingsGoalsSection(
@@ -93,6 +96,7 @@ class _BudgetPlanCard extends StatelessWidget {
   final double? progress;
   final String Function(double) amount;
   final VoidCallback onEdit;
+  final AppLocalizations l10n;
 
   const _BudgetPlanCard(
       {required this.period,
@@ -101,7 +105,8 @@ class _BudgetPlanCard extends StatelessWidget {
       required this.remaining,
       required this.progress,
       required this.amount,
-      required this.onEdit});
+      required this.onEdit,
+      required this.l10n});
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +117,7 @@ class _BudgetPlanCard extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('本月预算',
+              Text(l10n.monthlyBudgetTitle,
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -125,19 +130,22 @@ class _BudgetPlanCard extends StatelessWidget {
             TextButton.icon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('编辑')),
+                label: Text(l10n.edit)),
           ]),
           const SizedBox(height: 14),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             _BudgetMetric(
-                label: '预算',
-                value: budget == null ? '无预算限制' : amount(budget!),
+                label: l10n.budgetLabel,
+                value: budget == null ? l10n.noBudgetLimit : amount(budget!),
                 color: colorScheme.onSurface),
             _BudgetMetric(
-                label: '已使用', value: amount(expense), color: AppColors.expense),
+                label: l10n.usedLabel,
+                value: amount(expense),
+                color: AppColors.expense),
             _BudgetMetric(
-                label: '剩余',
-                value: remaining == null ? '不适用' : amount(remaining!),
+                label: l10n.remainingLabel,
+                value:
+                    remaining == null ? l10n.notApplicable : amount(remaining!),
                 color: remaining == null || remaining! >= 0
                     ? AppColors.income
                     : AppColors.expense),
@@ -155,11 +163,11 @@ class _BudgetPlanCard extends StatelessWidget {
                     backgroundColor:
                         colorScheme.outlineVariant.withValues(alpha: 0.3))),
             const SizedBox(height: 6),
-            Text('本月已使用 ${(progress! * 100).round()}%',
+            Text(l10n.monthlyUsedPercent((progress! * 100).round()),
                 style: TextStyle(
                     fontSize: 12, color: colorScheme.onSurfaceVariant)),
           ] else
-            Text('当前未设置月度预算，消费不会受到预算上限限制。',
+            Text(l10n.budgetNotSetHint,
                 style: TextStyle(
                     fontSize: 12, color: colorScheme.onSurfaceVariant)),
         ]),

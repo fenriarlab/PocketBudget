@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_budget/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:pocket_budget/features/settings/presentation/screens/settings_screen.dart';
+import 'package:pocket_budget/l10n/app_localizations.dart';
 
 void main() {
-  testWidgets('dashboard shows remaining budget and daily quota', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
+  testWidgets('dashboard shows remaining budget and daily quota',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: DashboardScreen(
         monthlyBudget: 5000,
         monthlyExpense: 1250,
@@ -22,7 +27,10 @@ void main() {
   });
 
   testWidgets('dashboard hides sensitive amounts', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: DashboardScreen(
         monthlyBudget: 5000,
         monthlyExpense: 1250,
@@ -40,9 +48,14 @@ void main() {
   testWidgets('settings updates default privacy preference', (tester) async {
     bool? updatedValue;
     await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: SettingsScreen(
         themeMode: ThemeMode.light,
         onThemeModeChanged: (_) {},
+        languagePreference: 'system',
+        onLanguageChanged: (_) {},
         privacyDefaultHidden: true,
         onPrivacyDefaultChanged: (value) => updatedValue = value,
       ),

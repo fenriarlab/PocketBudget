@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/models/savings_goal_model.dart';
 
 class SavingsScreen extends StatelessWidget {
@@ -91,6 +92,7 @@ class SavingsGoalsSection extends StatelessWidget {
       );
 
   Widget _goalCard(BuildContext context, SavingsGoalModel goal, bool archived) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final completed = goal.currentAmount >= goal.targetAmount;
     final remainingDays = goal.remainingDays;
@@ -98,10 +100,10 @@ class SavingsGoalsSection extends StatelessWidget {
         remainingDays > 0 ? goal.remainingAmount / remainingDays : 0.0;
     final expired = !completed && remainingDays == 0;
     final statusLabel = completed
-        ? '已完成'
+        ? l10n.goalCompleted
         : expired
-            ? '已到期'
-            : '进行中';
+            ? l10n.goalExpired
+            : l10n.goalActive;
     final statusColor = completed
         ? AppColors.income
         : expired
@@ -144,7 +146,7 @@ class SavingsGoalsSection extends StatelessWidget {
                     color: statusColor)),
           ),
           PopupMenuButton<String>(
-            tooltip: '目标操作',
+            tooltip: l10n.goalActions,
             onSelected: (value) async {
               if (value == 'edit') {
                 onEdit(goal);
@@ -168,26 +170,32 @@ class SavingsGoalsSection extends StatelessWidget {
             },
             itemBuilder: (context) => [
               if (!archived)
-                const PopupMenuItem(value: 'edit', child: Text('编辑专项储蓄')),
+                PopupMenuItem(value: 'edit', child: Text(l10n.editSavingsGoal)),
               if (!archived)
-                const PopupMenuItem(value: 'archive', child: Text('归档专项储蓄')),
+                PopupMenuItem(
+                    value: 'archive', child: Text(l10n.archiveSavingsGoal)),
               if (archived)
-                const PopupMenuItem(value: 'restore', child: Text('恢复专项储蓄')),
+                PopupMenuItem(
+                    value: 'restore', child: Text(l10n.restoreSavingsGoal)),
               if (archived && goal.currentAmount == 0)
-                const PopupMenuItem(value: 'purge', child: Text('永久删除')),
+                PopupMenuItem(
+                    value: 'purge', child: Text(l10n.purgeSavingsGoal)),
             ],
           ),
         ]),
         Text(
-            '目标日期: ${DateFormat('yyyy-MM-dd').format(goal.targetDate)} · 剩余 $remainingDays 天',
+            l10n.goalDeadline(
+                DateFormat.yMd(Localizations.localeOf(context).toLanguageTag())
+                    .format(goal.targetDate),
+                remainingDays),
             style:
                 TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         const SizedBox(height: 14),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text('已存: ${_amount(goal.currentAmount)}',
+          Text(l10n.savedAmount(_amount(goal.currentAmount)),
               style: const TextStyle(
                   color: AppColors.income, fontWeight: FontWeight.bold)),
-          Text('目标: ${_amount(goal.targetAmount)}',
+          Text(l10n.targetAmount(_amount(goal.targetAmount)),
               style: TextStyle(color: colorScheme.onSurface))
         ]),
         const SizedBox(height: 8),
@@ -197,20 +205,20 @@ class SavingsGoalsSection extends StatelessWidget {
             color: completed ? AppColors.income : colorScheme.primary),
         if (!completed && remainingDays > 0) ...[
           const SizedBox(height: 10),
-          Text('按照当前目标，每日存入 ${_amount(dailyNeeded)} 可按时完成',
+          Text(l10n.dailyDepositNeeded(_amount(dailyNeeded)),
               style:
                   TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         ],
         if (expired) ...[
           const SizedBox(height: 10),
-          Text('目标日期已到，仍差 ${_amount(goal.remainingAmount)}',
+          Text(l10n.goalExpiredRemaining(_amount(goal.remainingAmount)),
               style:
                   TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         ],
         if (archived)
-          const Padding(
+          Padding(
               padding: EdgeInsets.only(top: 10),
-              child: Text('已归档，只读；恢复后可继续记录流水。',
+              child: Text(l10n.archivedGoalHint,
                   style:
                       TextStyle(color: AppColors.textSecondary, fontSize: 12))),
         const SizedBox(height: 12),
@@ -222,15 +230,15 @@ class SavingsGoalsSection extends StatelessWidget {
               TextButton.icon(
                   onPressed: () => onHistory(goal),
                   icon: const Icon(Icons.history, size: 16),
-                  label: const Text('流水明细')),
+                  label: Text(l10n.savingsHistory)),
               if (!archived) ...[
                 OutlinedButton(
                     onPressed: () => onDeposit(goal, true),
-                    child: const Text('提取')),
+                    child: Text(l10n.withdraw)),
                 ElevatedButton.icon(
                     onPressed: () => onDeposit(goal, false),
                     icon: const Icon(Icons.add),
-                    label: const Text('存入一笔')),
+                    label: Text(l10n.deposit)),
               ],
             ]),
       ]),
@@ -239,18 +247,19 @@ class SavingsGoalsSection extends StatelessWidget {
 
   Future<bool> _confirmArchive(
       BuildContext context, SavingsGoalModel goal) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('归档专项储蓄？'),
-        content: Text('“${goal.title}”及其历史流水会被保留，并从进行中的目标中移出。'),
+        title: Text(l10n.archiveSavingsGoalQuestion),
+        content: Text(l10n.archiveSavingsGoalMessage(goal.title)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消')),
+              child: Text(l10n.cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('归档')),
+              child: Text(l10n.archive)),
         ],
       ),
     );
@@ -259,18 +268,19 @@ class SavingsGoalsSection extends StatelessWidget {
 
   Future<bool> _confirmPurge(
       BuildContext context, SavingsGoalModel goal) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('永久删除专项储蓄？'),
-        content: Text('“${goal.title}”没有流水，删除后无法恢复。'),
+        title: Text(l10n.purgeSavingsGoalQuestion),
+        content: Text(l10n.purgeSavingsGoalMessage(goal.title)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('取消')),
+              child: Text(l10n.cancel)),
           FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('永久删除')),
+              child: Text(l10n.purge)),
         ],
       ),
     );
@@ -313,21 +323,22 @@ class _SectionContentState extends State<_SectionContent> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final goals = showingArchived ? widget.archivedGoals : widget.goals;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Text('专项储蓄',
+        Text(l10n.savingsGoalsTitle,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ElevatedButton.icon(
             onPressed: widget.onAddGoal,
             icon: const Icon(Icons.add),
-            label: const Text('新建专项储蓄')),
+            label: Text(l10n.newSavingsGoal)),
       ]),
       const SizedBox(height: 14),
       SegmentedButton<bool>(
-        segments: const [
-          ButtonSegment(value: false, label: Text('进行中')),
-          ButtonSegment(value: true, label: Text('已归档')),
+        segments: [
+          ButtonSegment(value: false, label: Text(l10n.goalActive)),
+          ButtonSegment(value: true, label: Text(l10n.archived)),
         ],
         selected: {showingArchived},
         onSelectionChanged: (selection) =>
@@ -338,7 +349,8 @@ class _SectionContentState extends State<_SectionContent> {
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 40),
             child: Center(
-                child: Text(showingArchived ? '还没有已归档的专项储蓄' : '还没有进行中的专项储蓄',
+                child: Text(
+                    showingArchived ? l10n.noArchivedGoals : l10n.noActiveGoals,
                     style: const TextStyle(color: AppColors.textSecondary))))
       else
         ...goals.map((goal) => widget.buildCard(goal, showingArchived)),

@@ -3,13 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_budget/features/dashboard/presentation/screens/home_dashboard_screen.dart';
 import 'package:pocket_budget/features/savings/data/models/savings_goal_model.dart';
 import 'package:pocket_budget/features/savings/data/models/savings_log_model.dart';
+import 'package:pocket_budget/l10n/app_localizations.dart';
+
+Widget testApp({required Widget home}) => MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: home,
+    );
 
 void main() {
   testWidgets('savings goal sheet closes after creating a goal',
       (tester) async {
     SavingsGoalModel? savedGoal;
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(testApp(
       home: Scaffold(
         body: Builder(
           builder: (context) => ElevatedButton(
@@ -41,7 +49,7 @@ void main() {
 
   testWidgets('savings goal sheet shows validation errors for empty input',
       (tester) async {
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(testApp(
       home: Scaffold(
         body: SavingsGoalSheet(onSave: (_) async {}),
       ),
@@ -66,7 +74,7 @@ void main() {
     );
     var saved = false;
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(testApp(
       home: Scaffold(
         body: SavingsDepositSheet(
             goal: goal,
@@ -105,7 +113,7 @@ void main() {
     SavingsLogModel? savedLog;
     bool? savedDeductFromBudget;
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(testApp(
       home: Scaffold(
         body: SavingsDepositSheet(
           goal: goal,
@@ -139,7 +147,7 @@ void main() {
       createdAt: DateTime(2026, 8, 1),
     );
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(testApp(
       home: Scaffold(
         body: SavingsDepositSheet(
           goal: goal,

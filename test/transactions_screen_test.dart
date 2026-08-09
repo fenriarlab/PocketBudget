@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:pocket_budget/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:pocket_budget/features/transactions/data/models/transaction_model.dart';
 import 'package:pocket_budget/features/transactions/presentation/screens/transactions_screen.dart';
+import 'package:pocket_budget/l10n/app_localizations.dart';
 
 void main() {
-  testWidgets('calendar screen renders selected month and transaction', (tester) async {
+  testWidgets('calendar screen renders selected month and transaction',
+      (tester) async {
     final transaction = TransactionModel(
       id: 'tx-1',
       amount: 35,
@@ -18,21 +21,24 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: SizedBox(
           height: 900,
           child: TransactionsScreen(
-          transactions: [transaction],
-          selectedMonth: DateTime(2026, 8),
-          selectedDate: DateTime(2026, 8, 1),
-          dailyQuota: 250,
-          privacyHidden: false,
-          calendarView: true,
-          onMonthChanged: (_) {},
-          onDateSelected: (_) {},
-          onDelete: (_) {},
-          onEdit: (_) {},
-          onAdd: (_) {},
+            transactions: [transaction],
+            selectedMonth: DateTime(2026, 8),
+            selectedDate: DateTime(2026, 8, 1),
+            dailyQuota: 250,
+            privacyHidden: false,
+            calendarView: true,
+            onMonthChanged: (_) {},
+            onDateSelected: (_) {},
+            onDelete: (_) {},
+            onEdit: (_) {},
+            onAdd: (_) {},
           ),
         ),
       ),
@@ -44,34 +50,39 @@ void main() {
 
   testWidgets('calendar month title opens a date picker', (tester) async {
     await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: DashboardScreen(
-        monthlyBudget: 5000,
-        monthlyExpense: 0,
-        monthlyIncome: 0,
-        goals: const [],
-        currentPeriod: '2026-08',
-        privacyHidden: false,
-        transactions: const [],
-        selectedMonth: DateTime(2026, 8),
-        selectedDate: DateTime(2026, 8, 1),
-        dailyQuota: 250,
-        onMonthChanged: (_) {},
-        onDateSelected: (_) {},
-        onDelete: (_) {},
-        onEdit: (_) {},
-        onAdd: (_) {},
+          monthlyBudget: 5000,
+          monthlyExpense: 0,
+          monthlyIncome: 0,
+          goals: const [],
+          currentPeriod: '2026-08',
+          privacyHidden: false,
+          transactions: const [],
+          selectedMonth: DateTime(2026, 8),
+          selectedDate: DateTime(2026, 8, 1),
+          dailyQuota: 250,
+          onMonthChanged: (_) {},
+          onDateSelected: (_) {},
+          onDelete: (_) {},
+          onEdit: (_) {},
+          onAdd: (_) {},
         ),
       ),
     ));
 
-    await tester.tap(find.text('2026 年 08 月'));
+    await tester
+        .tap(find.text(DateFormat.yMMMM('zh_CN').format(DateTime(2026, 8))));
     await tester.pumpAndSettle();
 
     expect(find.text('选择月份'), findsOneWidget);
   });
 
-  testWidgets('long pressing a transaction opens edit and delete actions', (tester) async {
+  testWidgets('long pressing a transaction opens edit and delete actions',
+      (tester) async {
     final transaction = TransactionModel(
       id: 'tx-2',
       amount: 100,
@@ -83,6 +94,9 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: SizedBox(
           height: 900,

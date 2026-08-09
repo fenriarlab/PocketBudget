@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/month_period.dart';
 import '../../../analysis/presentation/screens/analysis_screen.dart';
 import '../../../backup/data/backup_repository.dart';
@@ -22,9 +23,15 @@ import 'dashboard_screen.dart';
 class HomeDashboardScreen extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final String languagePreference;
+  final ValueChanged<String> onLanguageChanged;
 
   const HomeDashboardScreen(
-      {super.key, required this.themeMode, required this.onThemeModeChanged});
+      {super.key,
+      required this.themeMode,
+      required this.onThemeModeChanged,
+      required this.languagePreference,
+      required this.onLanguageChanged});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -130,12 +137,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PocketBudget'),
+        title: Text(l10n.appTitle),
         actions: [
           IconButton(
-            tooltip: _privacyHidden ? '显示敏感金额' : '隐藏敏感金额',
+            tooltip: _privacyHidden ? l10n.showAmounts : l10n.hideAmounts,
             icon:
                 Icon(_privacyHidden ? Icons.visibility_off : Icons.visibility),
             onPressed: _togglePrivacy,
@@ -148,30 +156,30 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
               onPressed: () => _showTransactionSheet(_selectedDate),
-              tooltip: '记一笔',
+              tooltip: l10n.addTransaction,
               child: const Icon(Icons.add, size: 28))
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) =>
             setState(() => _selectedIndex = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
-              label: '首页'),
+              label: l10n.tabDashboard),
           NavigationDestination(
               icon: Icon(Icons.savings_outlined),
               selectedIcon: Icon(Icons.savings),
-              label: '计划'),
+              label: l10n.tabBudget),
           NavigationDestination(
               icon: Icon(Icons.insights_outlined),
               selectedIcon: Icon(Icons.insights),
-              label: '分析'),
+              label: l10n.analysisTab),
           NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
-              label: '我的'),
+              label: l10n.settingsTab),
         ],
       ),
     );
@@ -217,6 +225,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         return SettingsScreen(
           themeMode: widget.themeMode,
           onThemeModeChanged: widget.onThemeModeChanged,
+          languagePreference: widget.languagePreference,
+          onLanguageChanged: widget.onLanguageChanged,
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
         );
@@ -261,10 +271,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _deleteTransaction(TransactionModel transaction) async {
+    final l10n = AppLocalizations.of(context)!;
     if (transaction.id.startsWith('tx_savings_')) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('专项储蓄支出请在计划页的流水明细中删除')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.savingsExpenseDeleteHint)));
       }
       return;
     }
@@ -273,10 +284,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showEditTransactionSheet(TransactionModel transaction) async {
+    final l10n = AppLocalizations.of(context)!;
     if (transaction.id.startsWith('tx_savings_')) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('专项储蓄支出请在计划页的流水明细中编辑')));
+            .showSnackBar(SnackBar(content: Text(l10n.savingsExpenseEditHint)));
       }
       return;
     }
@@ -372,17 +384,18 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<void> _showGoalHistory(SavingsGoalModel goal) async {
     final logs = await _savingsRepository.getLogsForGoal(goal.id);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final action = await _showBottomSheet<String>(
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            Text('「${goal.title}」流水明细',
+            Text(l10n.goalHistoryTitle(goal.title),
                 style:
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (logs.isEmpty)
-              const Text('暂无记录',
+              Text(l10n.noSavingsRecords,
                   style: TextStyle(color: AppColors.textSecondary))
             else
               ...logs.map(
@@ -392,11 +405,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       color:
                           log.isDeposit ? AppColors.income : AppColors.expense),
                   title: Text(
-                      '${log.isDeposit ? '存入' : '提取'} ¥${log.amount.abs().toStringAsFixed(2)}'),
-                  subtitle:
-                      Text(log.note?.isNotEmpty == true ? log.note! : '未填写备注'),
+                      '${log.isDeposit ? l10n.deposit : l10n.withdraw} ¥${log.amount.abs().toStringAsFixed(2)}'),
+                  subtitle: Text(
+                      log.note?.isNotEmpty == true ? log.note! : l10n.noNote),
                   trailing: PopupMenuButton<String>(
-                    tooltip: '流水操作',
+                    tooltip: l10n.logActions,
                     onSelected: (value) async {
                       if (value == 'edit') {
                         Navigator.pop(context, 'edit:${log.id}');
@@ -406,18 +419,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (dialogContext) => AlertDialog(
-                          title: const Text('删除这笔流水？'),
-                          content: Text(
-                              '删除后会同步更新“${goal.title}”的余额${log.linkedTransactionId == null ? '' : '和预算支出'}。'),
+                          title: Text(l10n.deleteLogQuestion),
+                          content: Text(l10n.deleteLogMessage(
+                              goal.title,
+                              log.linkedTransactionId == null
+                                  ? ''
+                                  : l10n.andBudgetExpense)),
                           actions: [
                             TextButton(
                                 onPressed: () =>
                                     Navigator.pop(dialogContext, false),
-                                child: const Text('取消')),
+                                child: Text(l10n.cancel)),
                             FilledButton(
                                 onPressed: () =>
                                     Navigator.pop(dialogContext, true),
-                                child: const Text('删除')),
+                                child: Text(l10n.delete)),
                           ],
                         ),
                       );
@@ -427,9 +443,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       setSheetState(() {});
                       if (mounted) _loadData();
                     },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(value: 'edit', child: Text('编辑流水')),
-                      PopupMenuItem(value: 'delete', child: Text('删除流水')),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 'edit', child: Text(l10n.editLog)),
+                      PopupMenuItem(
+                          value: 'delete', child: Text(l10n.deleteLog)),
                     ],
                   ),
                 ),
@@ -462,10 +479,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   Future<void> _showExportBackup() async {
     final json = await _backupRepository.exportBackupJson();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('导出 JSON 备份'),
+                title: Text(l10n.exportJsonBackup),
                 content: SizedBox(
                     width: 500,
                     height: 220,
@@ -473,32 +491,34 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('关闭')),
+                      child: Text(l10n.close)),
                   ElevatedButton.icon(
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: json));
                         Navigator.pop(context);
                       },
                       icon: const Icon(Icons.copy),
-                      label: const Text('复制'))
+                      label: Text(l10n.copy))
                 ]));
   }
 
   Future<void> _showRestoreBackup() async {
     final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('恢复 JSON 备份'),
+                title: Text(l10n.restoreJsonBackup),
                 content: TextField(
                     controller: controller,
                     maxLines: 8,
-                    decoration: const InputDecoration(
-                        hintText: '粘贴备份 JSON', border: OutlineInputBorder())),
+                    decoration: InputDecoration(
+                        hintText: l10n.pasteBackupJson,
+                        border: OutlineInputBorder())),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('取消')),
+                      child: Text(l10n.cancel)),
                   ElevatedButton(
                       onPressed: () async {
                         final success = await _backupRepository
@@ -506,7 +526,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                         if (context.mounted) Navigator.pop(context);
                         if (success) _loadData();
                       },
-                      child: const Text('覆盖恢复'))
+                      child: Text(l10n.overwriteRestore))
                 ]));
     controller.dispose();
   }
@@ -553,6 +573,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final categories = _selectedType == TransactionType.expense
         ? const {'餐饮': '🍔', '交通': '🚌', '购物': '🛍️', '居住': '🏠', '娱乐': '🎮'}
         : const {'工资收入': '💰', '理财/奖金': '📈'};
@@ -567,15 +588,20 @@ class _TransactionSheetState extends State<_TransactionSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(widget.initialTransaction == null ? '新增记账明细' : '编辑记账明细',
+              Text(
+                  widget.initialTransaction == null
+                      ? l10n.newTransactionTitle
+                      : l10n.editTransactionTitle,
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold)),
               SegmentedButton<TransactionType>(
-                segments: const [
+                segments: [
                   ButtonSegment(
-                      value: TransactionType.expense, label: Text('支出')),
+                      value: TransactionType.expense,
+                      label: Text(l10n.expenseType)),
                   ButtonSegment(
-                      value: TransactionType.income, label: Text('收入')),
+                      value: TransactionType.income,
+                      label: Text(l10n.incomeType)),
                 ],
                 selected: {_selectedType},
                 onSelectionChanged: (value) => setState(() {
@@ -593,20 +619,22 @@ class _TransactionSheetState extends State<_TransactionSheet> {
             controller: _amountController,
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-                labelText: '金额',
+            decoration: InputDecoration(
+                labelText: l10n.amountLabel,
                 prefixText: '¥ ',
                 border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _category,
-            decoration: const InputDecoration(
-                labelText: '类别', border: OutlineInputBorder()),
+            decoration: InputDecoration(
+                labelText: l10n.categoryLabel,
+                border: const OutlineInputBorder()),
             items: categories.entries
                 .map((entry) => DropdownMenuItem(
                     value: entry.key,
-                    child: Text('${entry.value} ${entry.key}')))
+                    child: Text(
+                        '${entry.value} ${_localizedCategory(entry.key, l10n)}')))
                 .toList(),
             onChanged: (value) => setState(() {
               _category = value!;
@@ -616,8 +644,9 @@ class _TransactionSheetState extends State<_TransactionSheet> {
           const SizedBox(height: 12),
           TextField(
               controller: _noteController,
-              decoration: const InputDecoration(
-                  labelText: '备注', border: OutlineInputBorder())),
+              decoration: InputDecoration(
+                  labelText: l10n.noteLabel,
+                  border: const OutlineInputBorder())),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -637,12 +666,35 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   note: _noteController.text.trim(),
                 ));
               },
-              child: Text(widget.initialTransaction == null ? '保存到本地' : '保存修改'),
+              child: Text(widget.initialTransaction == null
+                  ? l10n.saveToLocal
+                  : l10n.saveChanges),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _localizedCategory(String category, AppLocalizations l10n) {
+    switch (category) {
+      case '餐饮':
+        return l10n.categoryFood;
+      case '交通':
+        return l10n.categoryTransport;
+      case '购物':
+        return l10n.categoryShopping;
+      case '居住':
+        return l10n.categoryHousing;
+      case '娱乐':
+        return l10n.categoryEntertainment;
+      case '工资收入':
+        return l10n.categorySalary;
+      case '理财/奖金':
+        return l10n.categoryBonus;
+      default:
+        return category;
+    }
   }
 }
 
@@ -685,6 +737,7 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.fromLTRB(
           20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
@@ -692,7 +745,10 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.initialGoal == null ? '新建专项储蓄' : '编辑专项储蓄',
+          Text(
+              widget.initialGoal == null
+                  ? l10n.newSavingsGoal
+                  : l10n.editSavingsGoal,
               style:
                   const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
@@ -702,7 +758,7 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
           TextField(
               controller: _titleController,
               decoration: InputDecoration(
-                  labelText: '目标名称',
+                  labelText: l10n.goalNameLabel,
                   errorText: _titleError,
                   border: const OutlineInputBorder())),
           const SizedBox(height: 12),
@@ -711,14 +767,16 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                  labelText: '目标金额',
+                  labelText: l10n.targetAmountLabel,
                   prefixText: '¥ ',
                   errorText: _amountError,
                   border: const OutlineInputBorder())),
           const SizedBox(height: 12),
           ListTile(
-            title: const Text('预计完成日期'),
-            subtitle: Text(DateFormat('yyyy-MM-dd').format(_targetDate)),
+            title: Text(l10n.targetDateLabel),
+            subtitle: Text(
+                DateFormat.yMd(Localizations.localeOf(context).toLanguageTag())
+                    .format(_targetDate)),
             trailing: const Icon(Icons.calendar_month),
             onTap: () async {
               final picked = await showDatePicker(
@@ -741,9 +799,10 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
                       final amount = double.tryParse(_amountController.text);
                       final title = _titleController.text.trim();
                       setState(() {
-                        _titleError = title.isEmpty ? '请输入目标名称' : null;
+                        _titleError =
+                            title.isEmpty ? l10n.goalNameRequired : null;
                         _amountError = amount == null || amount <= 0
-                            ? '请输入大于 0 的目标金额'
+                            ? l10n.positiveTargetAmountRequired
                             : null;
                       });
                       if (_titleError != null || _amountError != null) return;
@@ -769,16 +828,16 @@ class _SavingsGoalSheetState extends State<SavingsGoalSheet> {
                         if (mounted) {
                           setState(() {
                             _isSaving = false;
-                            _saveError = '保存失败，请重试';
+                            _saveError = l10n.saveFailed;
                           });
                         }
                       }
                     },
               child: Text(_isSaving
-                  ? '保存中…'
+                  ? l10n.saving
                   : widget.initialGoal == null
-                      ? '创建专项储蓄'
-                      : '保存修改'),
+                      ? l10n.createSavingsGoal
+                      : l10n.saveChanges),
             ),
           ),
         ],
@@ -833,6 +892,7 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.fromLTRB(
           20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
@@ -842,9 +902,9 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
           Text(
               widget.initialLog == null
                   ? (widget.isWithdraw
-                      ? '从「${widget.goal.title}」提取'
-                      : '向「${widget.goal.title}」存入')
-                  : '编辑「${widget.goal.title}」流水',
+                      ? l10n.withdrawFromGoal(widget.goal.title)
+                      : l10n.depositToGoal(widget.goal.title))
+                  : l10n.editGoalLog(widget.goal.title),
               style:
                   const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
@@ -853,21 +913,24 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                  labelText: widget.isWithdraw ? '提取金额' : '存入金额',
+                  labelText: widget.isWithdraw
+                      ? l10n.withdrawAmount
+                      : l10n.depositAmount,
                   prefixText: '¥ ',
                   errorText: _amountError,
                   border: const OutlineInputBorder())),
           const SizedBox(height: 12),
           TextField(
               controller: _noteController,
-              decoration: const InputDecoration(
-                  labelText: '备注', border: OutlineInputBorder())),
+              decoration: InputDecoration(
+                  labelText: l10n.noteLabel,
+                  border: const OutlineInputBorder())),
           if (!widget.isWithdraw)
             CheckboxListTile(
               value: _deductFromBudget,
               contentPadding: EdgeInsets.zero,
-              title: const Text('计入本月预算支出'),
-              subtitle: const Text('开启后会生成一笔“强迫存钱”支出，减少本月可用预算',
+              title: Text(l10n.countAgainstBudget),
+              subtitle: Text(l10n.countAgainstBudgetHint,
                   style: TextStyle(fontSize: 12)),
               onChanged: (value) =>
                   setState(() => _deductFromBudget = value ?? true),
@@ -894,9 +957,10 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
                           value > widget.goal.currentAmount;
                       setState(() {
                         _amountError = value == null || value <= 0
-                            ? '请输入大于 0 的金额'
+                            ? l10n.positiveAmountRequired
                             : exceedsBalance
-                                ? '提取金额不能超过当前余额 ¥${widget.goal.currentAmount.toStringAsFixed(2)}'
+                                ? l10n.withdrawExceedsBalance(
+                                    '¥${widget.goal.currentAmount.toStringAsFixed(2)}')
                                 : null;
                       });
                       if (_amountError != null) return;
@@ -919,15 +983,18 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
                         if (!mounted) return;
                         setState(() {
                           _isSaving = false;
-                          _saveError = '保存失败，请重试（$error）';
+                          _saveError =
+                              l10n.saveFailedWithError(error.toString());
                         });
                       }
                     },
               child: Text(_isSaving
-                  ? '保存中…'
+                  ? l10n.saving
                   : widget.initialLog == null
-                      ? (widget.isWithdraw ? '确认提取' : '确认存入')
-                      : '保存修改'),
+                      ? (widget.isWithdraw
+                          ? l10n.confirmWithdraw
+                          : l10n.confirmDeposit)
+                      : l10n.saveChanges),
             ),
           ),
         ],
@@ -959,6 +1026,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.fromLTRB(
           20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
@@ -966,7 +1034,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('编辑本月预算',
+            Text(l10n.editMonthlyBudget,
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             TextField(
@@ -975,7 +1043,7 @@ class _BudgetSheetState extends State<_BudgetSheet> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                  labelText: '预算上限',
+                  labelText: l10n.budgetLimitLabel,
                   prefixText: '¥ ',
                   errorText: _error,
                   border: const OutlineInputBorder()),
@@ -987,12 +1055,12 @@ class _BudgetSheetState extends State<_BudgetSheet> {
                 onPressed: () async {
                   final budget = double.tryParse(_controller.text.trim());
                   if (budget == null || budget < 0) {
-                    setState(() => _error = '请输入不小于 0 的预算金额');
+                    setState(() => _error = l10n.nonNegativeBudgetRequired);
                     return;
                   }
                   await widget.onSave(budget);
                 },
-                child: const Text('保存预算'),
+                child: Text(l10n.saveBudget),
               ),
             ),
           ]),

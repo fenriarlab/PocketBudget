@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../l10n/app_localizations.dart';
 
 enum PressureLevel { veryLow, low, medium, high, veryHigh }
 
@@ -17,6 +18,21 @@ extension PressureLevelDetails on PressureLevel {
         return '偏高';
       case PressureLevel.veryHigh:
         return '过高';
+    }
+  }
+
+  String localizedLabel(AppLocalizations l10n) {
+    switch (this) {
+      case PressureLevel.veryLow:
+        return l10n.pressureVeryLow;
+      case PressureLevel.low:
+        return l10n.pressureLow;
+      case PressureLevel.medium:
+        return l10n.pressureMedium;
+      case PressureLevel.high:
+        return l10n.pressureHigh;
+      case PressureLevel.veryHigh:
+        return l10n.pressureVeryHigh;
     }
   }
 
