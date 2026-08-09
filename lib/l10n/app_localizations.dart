@@ -320,6 +320,84 @@ abstract class AppLocalizations {
   /// **'English'**
   String get languageEnglish;
 
+  /// No description provided for @currencyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'记账货币'**
+  String get currencyTitle;
+
+  /// No description provided for @currencyLockedSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于所有金额和报表，已有数据后不可更改'**
+  String get currencyLockedSubtitle;
+
+  /// No description provided for @currencySetupTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择记账货币'**
+  String get currencySetupTitle;
+
+  /// No description provided for @currencySetupMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'该货币将用于所有预算、交易、专项储蓄和统计。'**
+  String get currencySetupMessage;
+
+  /// No description provided for @currencyLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'货币'**
+  String get currencyLabel;
+
+  /// No description provided for @currencyPreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'金额示例'**
+  String get currencyPreview;
+
+  /// No description provided for @currencySetupWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'创建财务数据后，PocketBudget 不会换算或迁移货币。如需更换，请先备份并重置数据。'**
+  String get currencySetupWarning;
+
+  /// No description provided for @confirmCurrency.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用{currency}'**
+  String confirmCurrency(Object currency);
+
+  /// No description provided for @resetFinancialData.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置财务数据'**
+  String get resetFinancialData;
+
+  /// No description provided for @resetFinancialDataSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除交易、预算和专项储蓄，并重新选择货币'**
+  String get resetFinancialDataSubtitle;
+
+  /// No description provided for @resetFinancialDataMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'此操作将永久删除当前设备上的交易、预算、专项储蓄和自定义分类，且不可撤销。请先导出备份。'**
+  String get resetFinancialDataMessage;
+
+  /// No description provided for @reset.
+  ///
+  /// In zh, this message translates to:
+  /// **'重置'**
+  String get reset;
+
+  /// No description provided for @currencyMismatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'备份货币与当前记账货币不一致，无法恢复。'**
+  String get currencyMismatch;
+
   /// No description provided for @dailySpendingLimit.
   ///
   /// In zh, this message translates to:

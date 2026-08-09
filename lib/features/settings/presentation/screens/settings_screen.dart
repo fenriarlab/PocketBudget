@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../../core/currency/currency_definition.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ThemeMode themeMode;
@@ -9,6 +10,8 @@ class SettingsScreen extends StatelessWidget {
   final ValueChanged<String> onLanguageChanged;
   final bool privacyDefaultHidden;
   final ValueChanged<bool> onPrivacyDefaultChanged;
+  final String currencyCode;
+  final Future<void> Function()? onResetData;
 
   const SettingsScreen(
       {super.key,
@@ -17,7 +20,9 @@ class SettingsScreen extends StatelessWidget {
       required this.languagePreference,
       required this.onLanguageChanged,
       required this.privacyDefaultHidden,
-      required this.onPrivacyDefaultChanged});
+      required this.onPrivacyDefaultChanged,
+      this.currencyCode = 'CNY',
+      this.onResetData});
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +66,31 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 12),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.payments_outlined),
+            title: Text(l10n.currencyTitle),
+            subtitle: Text(l10n.currencyLockedSubtitle),
+            trailing: Text(
+              '${CurrencyCatalog.byCode(currencyCode).nameFor(Localizations.localeOf(context).languageCode)} ($currencyCode)',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        if (onResetData != null) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.delete_forever_outlined),
+              title: Text(l10n.resetFinancialData),
+              subtitle: Text(l10n.resetFinancialDataSubtitle),
+              textColor: Theme.of(context).colorScheme.error,
+              iconColor: Theme.of(context).colorScheme.error,
+              onTap: onResetData,
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         Card(
           child: SwitchListTile(

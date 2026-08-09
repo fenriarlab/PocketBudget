@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/models/savings_goal_model.dart';
 
@@ -16,6 +17,7 @@ class SavingsScreen extends StatelessWidget {
   final ValueChanged<SavingsGoalModel> onPurge;
   final ValueChanged<SavingsGoalModel> onHistory;
   final void Function(SavingsGoalModel, bool) onDeposit;
+  final String currencyCode;
 
   const SavingsScreen(
       {super.key,
@@ -28,7 +30,8 @@ class SavingsScreen extends StatelessWidget {
       required this.onRestore,
       required this.onPurge,
       required this.onHistory,
-      required this.onDeposit});
+      required this.onDeposit,
+      this.currencyCode = 'CNY'});
 
   @override
   Widget build(BuildContext context) =>
@@ -43,7 +46,8 @@ class SavingsScreen extends StatelessWidget {
             onRestore: onRestore,
             onPurge: onPurge,
             onHistory: onHistory,
-            onDeposit: onDeposit)
+            onDeposit: onDeposit,
+            currencyCode: currencyCode)
       ]);
 }
 
@@ -58,6 +62,7 @@ class SavingsGoalsSection extends StatelessWidget {
   final ValueChanged<SavingsGoalModel> onPurge;
   final ValueChanged<SavingsGoalModel> onHistory;
   final void Function(SavingsGoalModel, bool) onDeposit;
+  final String currencyCode;
 
   const SavingsGoalsSection(
       {super.key,
@@ -70,11 +75,12 @@ class SavingsGoalsSection extends StatelessWidget {
       required this.onRestore,
       required this.onPurge,
       required this.onHistory,
-      required this.onDeposit});
+      required this.onDeposit,
+      this.currencyCode = 'CNY'});
 
   String _amount(double value) => privacyHidden
-      ? '¥ ****'
-      : '¥ ${NumberFormat('#,##0.00', 'en_US').format(value)}';
+      ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
+      : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
 
   @override
   Widget build(BuildContext context) => _SectionContent(

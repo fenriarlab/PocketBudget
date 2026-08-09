@@ -22,7 +22,7 @@ void main() {
     ));
 
     expect(find.text('本月剩余可用预算 (2026-08)'), findsOneWidget);
-    expect(find.text('¥ 3750.00'), findsOneWidget);
+    expect(find.text('¥3,750.00'), findsOneWidget);
     expect(find.text('每日建议消费上限'), findsOneWidget);
   });
 

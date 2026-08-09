@@ -7,7 +7,7 @@ class BackupRepository {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
   /// 导出 SQLite 数据库中所有表的数据为 JSON 格式
-  Future<String> exportBackupJson() async {
+  Future<String> exportBackupJson({required String currencyCode}) async {
     final db = await _dbHelper.database;
 
     final categories = await db.query('categories');
@@ -20,6 +20,9 @@ class BackupRepository {
     final backupMap = {
       'app': 'PocketBudget',
       'version': 2,
+      'schema_version': 1,
+      'app_version': '1.0.0',
+      'currency_code': currencyCode,
       'exported_at': DateTime.now().toIso8601String(),
       'data': {
         'categories': categories,
@@ -35,10 +38,13 @@ class BackupRepository {
   }
 
   /// 从备份 JSON 字符串无缝还原所有表数据
-  Future<bool> restoreBackupJson(String jsonStr) async {
+  Future<bool> restoreBackupJson(String jsonStr,
+      {required String expectedCurrencyCode}) async {
     try {
       final Map<String, dynamic> backupMap = jsonDecode(jsonStr);
       if (!backupMap.containsKey('data')) return false;
+      final backupCurrency = backupMap['currency_code'] as String? ?? 'CNY';
+      if (backupCurrency != expectedCurrencyCode) return false;
 
       final data = backupMap['data'] as Map<String, dynamic>;
       final db = await _dbHelper.database;

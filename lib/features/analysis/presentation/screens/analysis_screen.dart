@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 
@@ -9,16 +10,19 @@ class AnalysisScreen extends StatelessWidget {
   final bool privacyHidden;
   final VoidCallback onExportBackup;
   final VoidCallback onRestoreBackup;
+  final String currencyCode;
 
   const AnalysisScreen(
       {super.key,
       required this.transactions,
       required this.privacyHidden,
       required this.onExportBackup,
-      required this.onRestoreBackup});
+      required this.onRestoreBackup,
+      this.currencyCode = 'CNY'});
 
-  String _amount(double value) =>
-      privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
+    String _amount(double value) => privacyHidden
+      ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
+      : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
 
   @override
   Widget build(BuildContext context) {

@@ -49,8 +49,8 @@ void main() {
         savingsGoal:
             goal(currentAmount: 6200, targetDate: DateTime(2026, 12, 31))));
 
-    expect(find.text('¥ 10,000.00'), findsOneWidget);
-    expect(find.text('¥ 2,500.00'), findsOneWidget);
+    expect(find.text('¥10,000.00'), findsOneWidget);
+    expect(find.text('¥2,500.00'), findsOneWidget);
     expect(find.text('进行中'), findsNWidgets(2));
   });
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../transactions/data/models/transaction_model.dart';
@@ -24,6 +25,7 @@ class DashboardScreen extends StatelessWidget {
   final ValueChanged<TransactionModel>? onDelete;
   final ValueChanged<TransactionModel>? onEdit;
   final ValueChanged<DateTime>? onAdd;
+  final String currencyCode;
 
   const DashboardScreen({
     super.key,
@@ -43,10 +45,13 @@ class DashboardScreen extends StatelessWidget {
     this.onDelete,
     this.onEdit,
     this.onAdd,
+    this.currencyCode = 'CNY',
   });
 
   String _amount(double value) =>
-      privacyHidden ? '¥ ****' : '¥ ${value.toStringAsFixed(2)}';
+      privacyHidden
+          ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
+          : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +164,7 @@ class DashboardScreen extends StatelessWidget {
         ),
         Expanded(
           child: TransactionsScreen(
+            currencyCode: currencyCode,
             transactions: transactions!,
             selectedMonth: selectedMonth!,
             selectedDate: selectedDate!,

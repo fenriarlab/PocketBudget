@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/models/transaction_model.dart';
 import '../models/pressure_level.dart';
@@ -18,6 +19,7 @@ class TransactionsScreen extends StatelessWidget {
   final ValueChanged<TransactionModel> onDelete;
   final ValueChanged<TransactionModel> onEdit;
   final ValueChanged<DateTime> onAdd;
+  final String currencyCode;
 
   const TransactionsScreen({
     super.key,
@@ -32,12 +34,14 @@ class TransactionsScreen extends StatelessWidget {
     required this.onDelete,
     required this.onEdit,
     required this.onAdd,
+    this.currencyCode = 'CNY',
   });
 
   String _amount(double value, {bool signed = false, bool expense = false}) {
-    if (privacyHidden) return '¥ ****';
+    final currency = CurrencyCatalog.byCode(currencyCode);
+    if (privacyHidden) return '${currency.symbol} ****';
     final prefix = signed ? (expense ? '-' : '+') : '';
-    return '$prefix¥ ${value.toStringAsFixed(2)}';
+    return '$prefix${currency.format(value, 'en')}';
   }
 
   @override

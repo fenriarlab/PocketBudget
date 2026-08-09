@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/database/database_helper.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/month_period.dart';
 import '../../../analysis/presentation/screens/analysis_screen.dart';
@@ -25,13 +26,17 @@ class HomeDashboardScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final String languagePreference;
   final ValueChanged<String> onLanguageChanged;
+  final String currencyCode;
+  final Future<void> Function() onCurrencyReset;
 
   const HomeDashboardScreen(
       {super.key,
       required this.themeMode,
       required this.onThemeModeChanged,
       required this.languagePreference,
-      required this.onLanguageChanged});
+      required this.onLanguageChanged,
+      required this.currencyCode,
+      required this.onCurrencyReset});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -196,6 +201,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           monthlyBudget: _monthlyBudget,
           monthlyExpense: _monthlyExpense,
           monthlyBudgetedSavings: _monthlyBudgetedSavings,
+          currencyCode: widget.currencyCode,
           onEditBudget: () => _showBudgetSheet(),
           onAddGoal: _showGoalSheet,
           onArchive: (goal) async {
@@ -220,6 +226,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           privacyHidden: _privacyHidden,
           onExportBackup: _showExportBackup,
           onRestoreBackup: _showRestoreBackup,
+          currencyCode: widget.currencyCode,
         );
       case 3:
         return SettingsScreen(
@@ -227,6 +234,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onThemeModeChanged: widget.onThemeModeChanged,
           languagePreference: widget.languagePreference,
           onLanguageChanged: widget.onLanguageChanged,
+          currencyCode: widget.currencyCode,
+          onResetData: _confirmAndResetData,
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
         );
@@ -239,6 +248,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           goals: _goals,
           currentPeriod: _currentPeriod,
           privacyHidden: _privacyHidden,
+          currencyCode: widget.currencyCode,
           transactions: _transactions,
           selectedMonth: _selectedMonth,
           selectedDate: _selectedDate,
@@ -477,7 +487,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   }
 
   Future<void> _showExportBackup() async {
-    final json = await _backupRepository.exportBackupJson();
+    final json = await _backupRepository
+        .exportBackupJson(currencyCode: widget.currencyCode);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     showDialog<void>(
@@ -522,13 +533,47 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                   ElevatedButton(
                       onPressed: () async {
                         final success = await _backupRepository
-                            .restoreBackupJson(controller.text.trim());
+                            .restoreBackupJson(controller.text.trim(),
+                                expectedCurrencyCode: widget.currencyCode);
                         if (context.mounted) Navigator.pop(context);
-                        if (success) _loadData();
+                        if (success) {
+                          _loadData();
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                              SnackBar(content: Text(l10n.currencyMismatch)));
+                        }
                       },
                       child: Text(l10n.overwriteRestore))
                 ]));
     controller.dispose();
+  }
+
+  Future<void> _confirmAndResetData() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.resetFinancialData),
+        content: Text(l10n.resetFinancialDataMessage),
+        actions: [
+          TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _showExportBackup();
+              },
+              child: Text(l10n.exportJsonBackup)),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(l10n.cancel)),
+          FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(l10n.reset)),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await DatabaseHelper.instance.resetFinancialData();
+    await widget.onCurrencyReset();
   }
 }
 

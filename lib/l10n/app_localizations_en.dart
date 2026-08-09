@@ -123,6 +123,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get currencyTitle => 'Bookkeeping currency';
+
+  @override
+  String get currencyLockedSubtitle =>
+      'Used for all amounts and reports; locked after data is created';
+
+  @override
+  String get currencySetupTitle => 'Choose a bookkeeping currency';
+
+  @override
+  String get currencySetupMessage =>
+      'This currency will be used for all budgets, transactions, sinking funds, and reports.';
+
+  @override
+  String get currencyLabel => 'Currency';
+
+  @override
+  String get currencyPreview => 'Amount preview';
+
+  @override
+  String get currencySetupWarning =>
+      'PocketBudget does not convert or migrate currencies after financial data is created. Back up and reset data to change it.';
+
+  @override
+  String confirmCurrency(Object currency) {
+    return 'Use $currency';
+  }
+
+  @override
+  String get resetFinancialData => 'Reset financial data';
+
+  @override
+  String get resetFinancialDataSubtitle =>
+      'Delete transactions, budgets, and sinking funds, then choose a currency again';
+
+  @override
+  String get resetFinancialDataMessage =>
+      'This permanently deletes transactions, budgets, sinking funds, and custom categories on this device. Export a backup first.';
+
+  @override
+  String get reset => 'Reset';
+
+  @override
+  String get currencyMismatch =>
+      'The backup currency does not match the current bookkeeping currency. Restore was blocked.';
+
+  @override
   String get dailySpendingLimit => 'Daily spending limit';
 
   @override

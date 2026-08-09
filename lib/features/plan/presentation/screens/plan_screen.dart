@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/presentation/screens/savings_screen.dart';
@@ -22,6 +22,7 @@ class PlanScreen extends StatelessWidget {
   final ValueChanged<SavingsGoalModel> onPurge;
   final ValueChanged<SavingsGoalModel> onHistory;
   final void Function(SavingsGoalModel, bool) onDeposit;
+  final String currencyCode;
 
   const PlanScreen({
     super.key,
@@ -40,11 +41,12 @@ class PlanScreen extends StatelessWidget {
     required this.onPurge,
     required this.onHistory,
     required this.onDeposit,
+    this.currencyCode = 'CNY',
   });
 
   String _amount(double value) => privacyHidden
-      ? '¥ ****'
-      : '¥ ${NumberFormat('#,##0.00', 'en_US').format(value)}';
+      ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
+      : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +84,7 @@ class PlanScreen extends StatelessWidget {
           onPurge: onPurge,
           onHistory: onHistory,
           onDeposit: onDeposit,
+          currencyCode: currencyCode,
         ),
       ],
     );

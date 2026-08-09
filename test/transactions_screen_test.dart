@@ -44,7 +44,7 @@ void main() {
       ),
     ));
 
-    expect(find.text('-¥ 35.00'), findsOneWidget);
+    expect(find.text('-¥35.00'), findsOneWidget);
     expect(find.text('餐饮'), findsOneWidget);
   });
 

@@ -120,6 +120,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageEnglish => 'English';
 
   @override
+  String get currencyTitle => '记账货币';
+
+  @override
+  String get currencyLockedSubtitle => '用于所有金额和报表，已有数据后不可更改';
+
+  @override
+  String get currencySetupTitle => '选择记账货币';
+
+  @override
+  String get currencySetupMessage => '该货币将用于所有预算、交易、专项储蓄和统计。';
+
+  @override
+  String get currencyLabel => '货币';
+
+  @override
+  String get currencyPreview => '金额示例';
+
+  @override
+  String get currencySetupWarning =>
+      '创建财务数据后，PocketBudget 不会换算或迁移货币。如需更换，请先备份并重置数据。';
+
+  @override
+  String confirmCurrency(Object currency) {
+    return '使用$currency';
+  }
+
+  @override
+  String get resetFinancialData => '重置财务数据';
+
+  @override
+  String get resetFinancialDataSubtitle => '删除交易、预算和专项储蓄，并重新选择货币';
+
+  @override
+  String get resetFinancialDataMessage =>
+      '此操作将永久删除当前设备上的交易、预算、专项储蓄和自定义分类，且不可撤销。请先导出备份。';
+
+  @override
+  String get reset => '重置';
+
+  @override
+  String get currencyMismatch => '备份货币与当前记账货币不一致，无法恢复。';
+
+  @override
   String get dailySpendingLimit => '每日建议消费上限';
 
   @override

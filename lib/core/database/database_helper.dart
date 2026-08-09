@@ -23,6 +23,31 @@ class DatabaseHelper {
     return _database!;
   }
 
+  Future<bool> hasFinancialData() async {
+    final db = await database;
+    const tables = ['transactions', 'budgets', 'savings_goals', 'savings_logs'];
+    for (final table in tables) {
+      final count = Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $table'),
+          ) ??
+          0;
+      if (count > 0) return true;
+    }
+    return false;
+  }
+
+  Future<void> resetFinancialData() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('budget_allocations');
+      await txn.delete('savings_logs');
+      await txn.delete('savings_goals');
+      await txn.delete('transactions');
+      await txn.delete('budgets');
+      await txn.delete('categories', where: 'is_custom = 1');
+    });
+  }
+
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);

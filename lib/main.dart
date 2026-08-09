@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/constants/app_colors.dart';
+import 'core/currency/currency_definition.dart';
+import 'core/database/database_helper.dart';
 import 'features/dashboard/presentation/screens/home_dashboard_screen.dart';
+import 'features/onboarding/presentation/screens/currency_setup_screen.dart';
 import 'l10n/app_localizations.dart';
 
 void main() {
@@ -19,12 +22,15 @@ class PocketBudgetApp extends StatefulWidget {
 class _PocketBudgetAppState extends State<PocketBudgetApp> {
   ThemeMode _themeMode = ThemeMode.dark;
   String _languagePreference = 'system';
+  String? _currencyCode;
+  bool _currencyLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadThemeMode();
     _loadLanguagePreference();
+    _loadCurrency();
   }
 
   Future<void> _loadThemeMode() async {
@@ -58,6 +64,34 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
     if (mounted) setState(() => _languagePreference = value);
   }
 
+  Future<void> _loadCurrency() async {
+    final preferences = await SharedPreferences.getInstance();
+    var value = preferences.getString('currency_code');
+    if (value == null && await DatabaseHelper.instance.hasFinancialData()) {
+      value = 'CNY';
+      await preferences.setString('currency_code', value);
+    }
+    if (!mounted) return;
+    setState(() {
+      _currencyCode = value == null ? null : CurrencyCatalog.byCode(value).code;
+      _currencyLoading = false;
+    });
+  }
+
+  Future<void> _setCurrency(String code) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('currency_code', code);
+    if (mounted) {
+      setState(() => _currencyCode = CurrencyCatalog.byCode(code).code);
+    }
+  }
+
+  Future<void> _resetCurrency() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove('currency_code');
+    if (mounted) setState(() => _currencyCode = null);
+  }
+
   Locale? get _locale {
     switch (_languagePreference) {
       case 'zh':
@@ -71,6 +105,14 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_currencyLoading) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       locale: _locale,
@@ -193,12 +235,16 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
-      home: HomeDashboardScreen(
-        themeMode: _themeMode,
-        onThemeModeChanged: _setThemeMode,
-        languagePreference: _languagePreference,
-        onLanguageChanged: _setLanguagePreference,
-      ),
+      home: _currencyCode == null
+          ? CurrencySetupScreen(onConfirmed: _setCurrency)
+          : HomeDashboardScreen(
+              themeMode: _themeMode,
+              onThemeModeChanged: _setThemeMode,
+              languagePreference: _languagePreference,
+              onLanguageChanged: _setLanguagePreference,
+              currencyCode: _currencyCode!,
+              onCurrencyReset: _resetCurrency,
+            ),
     );
   }
 }
