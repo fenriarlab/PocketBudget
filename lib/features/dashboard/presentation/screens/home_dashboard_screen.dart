@@ -320,6 +320,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       builder: (sheetContext) => _TransactionSheet(
         date: date,
         expenseCategories: _expenseCategories,
+        onAddCategory: (name) async {
+          final category = await _categoryRepository.addExpenseCategory(name);
+          await _loadData();
+          return category;
+        },
         onSave: (transaction) async {
           await _transactionRepository.insertTransaction(transaction);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -357,6 +362,11 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         date: transaction.date,
         initialTransaction: transaction,
         expenseCategories: _expenseCategories,
+        onAddCategory: (name) async {
+          final category = await _categoryRepository.addExpenseCategory(name);
+          await _loadData();
+          return category;
+        },
         onSave: (updatedTransaction) async {
           await _transactionRepository.updateTransaction(updatedTransaction);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -907,12 +917,14 @@ class _TransactionSheet extends StatefulWidget {
   final List<CategoryModel> expenseCategories;
   final TransactionModel? initialTransaction;
   final Future<void> Function(TransactionModel transaction) onSave;
+  final Future<CategoryModel?> Function(String name)? onAddCategory;
 
   const _TransactionSheet({
     required this.date,
     required this.expenseCategories,
     this.initialTransaction,
     required this.onSave,
+    this.onAddCategory,
   });
 
   @override
@@ -927,10 +939,13 @@ class _TransactionSheetState extends State<_TransactionSheet> {
   String _icon = '🍔';
   String? _amountError;
   bool _isSaving = false;
+  int _categoryPage = 0;
+  late List<CategoryModel> _availableExpenseCategories;
 
   @override
   void initState() {
     super.initState();
+    _availableExpenseCategories = [...widget.expenseCategories];
     final transaction = widget.initialTransaction;
     if (transaction != null) {
       _amountController.text = transaction.amount.toStringAsFixed(2);
@@ -1061,11 +1076,28 @@ class _TransactionSheetState extends State<_TransactionSheet> {
             _CategoryGrid(
               categories: categories,
               selectedCategoryId: selectedCategoryId,
+              page: _categoryPage,
+              showCustomPage: _selectedType == TransactionType.expense,
               localizedName: (category) => _localizedCategory(category, l10n),
               onSelected: (category) => setState(() {
                 _category = category.id;
                 _icon = category.icon;
               }),
+              onPageChanged: (page) => setState(() => _categoryPage = page),
+              onAddCategory: widget.onAddCategory == null
+                  ? null
+                  : () async {
+                      final name = await _showAddCategoryDialog(context);
+                      if (name == null || name.isEmpty || !mounted) return;
+                      final category = await widget.onAddCategory!(name);
+                      if (category == null || !mounted) return;
+                      setState(() {
+                        _availableExpenseCategories.add(category);
+                        _categoryPage = 1;
+                        _category = category.id;
+                        _icon = category.icon;
+                      });
+                    },
             ),
             const SizedBox(height: 16),
             Container(
@@ -1192,7 +1224,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
 
   Map<String, CategoryModel> _categoriesForType(TransactionType type) {
     if (type == TransactionType.expense) {
-      final categories = [...widget.expenseCategories]
+      final categories = [..._availableExpenseCategories]
         ..sort(_compareCategories);
       final orderedCategories = {
         for (final category in categories) category.id: category,
@@ -1333,6 +1365,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
     final firstCategory = categories.values.first;
     setState(() {
       _selectedType = type;
+      _categoryPage = 0;
       _category = firstCategory.id;
       _icon = firstCategory.icon;
     });
@@ -1357,6 +1390,36 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       default:
         return category;
     }
+  }
+
+  Future<String?> _showAddCategoryDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.addExpenseCategory),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 20,
+          decoration: InputDecoration(labelText: l10n.categoryNameLabel),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return name;
   }
 }
 
@@ -1431,93 +1494,190 @@ class _TransactionTypeTabs extends StatelessWidget {
 class _CategoryGrid extends StatelessWidget {
   final Map<String, CategoryModel> categories;
   final String? selectedCategoryId;
+  final int page;
+  final bool showCustomPage;
   final String Function(String categoryName) localizedName;
   final ValueChanged<CategoryModel> onSelected;
+  final ValueChanged<int> onPageChanged;
+  final VoidCallback? onAddCategory;
 
   const _CategoryGrid({
     required this.categories,
     required this.selectedCategoryId,
+    required this.page,
+    required this.showCustomPage,
     required this.localizedName,
     required this.onSelected,
+    required this.onPageChanged,
+    this.onAddCategory,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: categories.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        mainAxisExtent: 76,
-        crossAxisSpacing: 8,
-      ),
-      itemBuilder: (context, index) {
-        final category = categories.values.elementAt(index);
-        final isSelected = category.id == selectedCategoryId;
-        final color = _categoryColor(category.colorHex);
-        return InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => onSelected(category),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-            decoration: BoxDecoration(
+    final builtIn =
+        categories.values.where((category) => !category.isCustom).toList();
+    final custom =
+        categories.values.where((category) => category.isCustom).toList();
+    final pageCount = showCustomPage
+        ? (custom.isEmpty ? 2 : (custom.length / 10).ceil() + 1)
+        : 1;
+    final currentPage = page >= pageCount ? pageCount - 1 : page;
+    final visibleCategories = currentPage == 0 || !showCustomPage
+        ? builtIn.take(10).toList()
+        : custom.skip((currentPage - 1) * 10).take(10).toList();
+    final showAddTile =
+        showCustomPage && currentPage == pageCount - 1 && onAddCategory != null;
+    return Column(
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: visibleCategories.length + (showAddTile ? 1 : 0),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+            mainAxisExtent: 76,
+            crossAxisSpacing: 8,
+          ),
+          itemBuilder: (context, index) {
+            if (index >= visibleCategories.length) {
+              return _AddCategoryTile(onTap: onAddCategory!);
+            }
+            final category = visibleCategories[index];
+            final isSelected = category.id == selectedCategoryId;
+            final color = _categoryColor(category.colorHex);
+            return InkWell(
               borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? color.withValues(alpha: 0.22)
-                        : color.withValues(alpha: 0.10),
-                    shape: BoxShape.circle,
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: color.withValues(alpha: 0.22),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: _CategoryGlyph(category: category),
+              onTap: () => onSelected(category),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  localizedName(category.name),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
                         color: isSelected
-                            ? color
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                            ? color.withValues(alpha: 0.22)
+                            : color.withValues(alpha: 0.10),
+                        shape: BoxShape.circle,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: color.withValues(alpha: 0.22),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ]
+                            : null,
                       ),
+                      child: _CategoryGlyph(category: category),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      localizedName(category.name),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected
+                                ? color
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: 3),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: isSelected ? 5 : 0,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                AnimatedContainer(
+              ),
+            );
+          },
+        ),
+        if (pageCount > 1) ...[
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              pageCount,
+              (index) => GestureDetector(
+                onTap: () => onPageChanged(index),
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
-                  width: isSelected ? 5 : 0,
-                  height: 5,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: currentPage == index ? 14 : 7,
+                  height: 7,
                   decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+                    color: currentPage == index
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        );
-      },
+        ],
+      ],
+    );
+  }
+}
+
+class _AddCategoryTile extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddCategoryTile({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.add_rounded, color: colors.primary, size: 22),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            AppLocalizations.of(context)!.addExpenseCategory,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

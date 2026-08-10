@@ -130,7 +130,7 @@ class CategoryRepository {
     }
   }
 
-  Future<void> addExpenseCategory(String name) async {
+  Future<CategoryModel> addExpenseCategory(String name) async {
     final db = await _dbHelper.database;
     const colors = [
       '#F08A8F',
@@ -140,17 +140,19 @@ class CategoryRepository {
       '#9A7BE8',
     ];
     final color = colors[DateTime.now().microsecondsSinceEpoch % colors.length];
+    final category = CategoryModel(
+      id: 'cat_custom_${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      icon: '🏷️',
+      colorHex: color,
+      type: CategoryType.expense,
+      isCustom: true,
+    );
     await db.insert(
       'categories',
-      CategoryModel(
-        id: 'cat_custom_${DateTime.now().microsecondsSinceEpoch}',
-        name: name,
-        icon: '🏷️',
-        colorHex: color,
-        type: CategoryType.expense,
-        isCustom: true,
-      ).toMap(),
+      category.toMap(),
     );
+    return category;
   }
 
   Future<bool> deleteCategory(CategoryModel category) async {
