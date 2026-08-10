@@ -1051,7 +1051,25 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                 onSelectionChanged: (value) => _selectType(value.first),
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
+            Text(
+              l10n.categoryLabel,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _CategoryGrid(
+              categories: categories,
+              selectedCategoryId: selectedCategoryId,
+              localizedName: (category) => _localizedCategory(category, l10n),
+              onSelected: (category) => setState(() {
+                _category = category.id;
+                _icon = category.icon;
+              }),
+            ),
+            const SizedBox(height: 16),
             Text(l10n.amountLabel,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: colors.onSurfaceVariant,
@@ -1094,28 +1112,6 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _TransactionFieldTile(
-              icon: selectedCategory?.icon ?? '🏷️',
-              label: l10n.categoryLabel,
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedCategoryId,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  items: categories.entries
-                      .map((entry) => DropdownMenuItem(
-                            value: entry.key,
-                            child: Text(_localizedCategory(entry.value.name, l10n)),
-                          ))
-                      .toList(),
-                  onChanged: (value) => setState(() {
-                    _category = value!;
-                    _icon = categories[_category]!.icon;
-                  }),
                 ),
               ),
             ),
@@ -1186,6 +1182,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
         id: 'cat_salary',
         name: '工资收入',
         icon: '💰',
+        colorHex: '#55B98A',
         type: CategoryType.income,
         isCustom: false,
       ),
@@ -1193,6 +1190,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
         id: 'cat_bonus',
         name: '理财/奖金',
         icon: '📈',
+        colorHex: '#58A99A',
         type: CategoryType.income,
         isCustom: false,
       ),
@@ -1204,6 +1202,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       id: 'cat_food',
       name: '餐饮',
       icon: '🍔',
+      colorHex: '#F06B78',
       type: CategoryType.expense,
       isCustom: false,
     ),
@@ -1211,6 +1210,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       id: 'cat_transport',
       name: '交通',
       icon: '🚌',
+      colorHex: '#6E9BFF',
       type: CategoryType.expense,
       isCustom: false,
     ),
@@ -1218,6 +1218,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       id: 'cat_shopping',
       name: '购物',
       icon: '🛍️',
+      colorHex: '#F2A84B',
       type: CategoryType.expense,
       isCustom: false,
     ),
@@ -1225,6 +1226,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       id: 'cat_housing',
       name: '居住',
       icon: '🏠',
+      colorHex: '#63B978',
       type: CategoryType.expense,
       isCustom: false,
     ),
@@ -1232,6 +1234,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       id: 'cat_entertainment',
       name: '娱乐',
       icon: '🎮',
+      colorHex: '#9A75E8',
       type: CategoryType.expense,
       isCustom: false,
     ),
@@ -1268,6 +1271,100 @@ class _TransactionSheetState extends State<_TransactionSheet> {
         return category;
     }
   }
+}
+
+class _CategoryGrid extends StatelessWidget {
+  final Map<String, CategoryModel> categories;
+  final String? selectedCategoryId;
+  final String Function(String categoryName) localizedName;
+  final ValueChanged<CategoryModel> onSelected;
+
+  const _CategoryGrid({
+    required this.categories,
+    required this.selectedCategoryId,
+    required this.localizedName,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: categories.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5,
+        mainAxisExtent: 76,
+        crossAxisSpacing: 8,
+      ),
+      itemBuilder: (context, index) {
+        final category = categories.values.elementAt(index);
+        final isSelected = category.id == selectedCategoryId;
+        final color = _categoryColor(category.colorHex);
+        return InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => onSelected(category),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? color.withValues(alpha: 0.16)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.22)
+                        : color.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.22),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(category.icon,
+                      style: const TextStyle(fontSize: 19)),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  localizedName(category.name),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected
+                            ? color
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+Color _categoryColor(String hex) {
+  final normalized = hex.replaceFirst('#', '');
+  final value = int.tryParse(normalized, radix: 16);
+  return value == null ? const Color(0xFF8791A5) : Color(0xFF000000 | value);
 }
 
 class _TransactionFieldTile extends StatelessWidget {
