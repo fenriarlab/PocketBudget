@@ -1040,7 +1040,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                         ? l10n.newTransactionTitle
                         : l10n.editTransactionTitle,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0,
                     ),
@@ -1116,7 +1116,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                     Text(
                       l10n.amountLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: colors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1157,7 +1157,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
             Container(
               padding: const EdgeInsets.fromLTRB(18, 14, 14, 10),
               decoration: BoxDecoration(
-                color: colors.surfaceContainerHighest.withValues(alpha: 0.42),
+                color: accent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
@@ -1166,7 +1166,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   Text(
                     l10n.noteLabel,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      fontSize: 14,
+                      fontSize: 13,
                       color: colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1177,6 +1177,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                     maxLength: 50,
                     onChanged: (_) => setState(() {}),
                     textInputAction: TextInputAction.newline,
+                    style: theme.textTheme.bodyMedium?.copyWith(fontSize: 15),
                     decoration: InputDecoration(
                       hintText: l10n.noNote,
                       border: InputBorder.none,
@@ -1559,7 +1560,7 @@ class _CategoryGrid extends StatelessWidget {
               onTap: () => onSelected(category),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -1587,7 +1588,7 @@ class _CategoryGrid extends StatelessWidget {
                       ),
                       child: _CategoryGlyph(category: category),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 4),
                     Text(
                       localizedName(category.name),
                       maxLines: 1,
@@ -1604,7 +1605,7 @@ class _CategoryGrid extends StatelessWidget {
                                     .onSurfaceVariant,
                           ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
                       width: isSelected ? 5 : 0,

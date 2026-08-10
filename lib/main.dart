@@ -122,10 +122,11 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
       themeMode: _themeMode,
       theme: ThemeData(
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F7F3),
+        scaffoldBackgroundColor: const Color(0xFFF4F7FC),
         colorScheme: const ColorScheme.light(
             primary: AppColors.primary,
             surface: Colors.white,
+            surfaceContainerHighest: Color(0xFFEEF3FA),
             onSurface: AppColors.lightTextPrimary,
             onSurfaceVariant: AppColors.lightTextSecondary),
         fontFamily: 'Noto Sans CJK SC',
