@@ -975,8 +975,12 @@ class _TransactionSheetState extends State<_TransactionSheet> {
             );
 
     final accent = _selectedType == TransactionType.expense
-        ? colors.error
-        : colors.tertiary;
+      ? (theme.brightness == Brightness.dark
+        ? const Color(0xFFE29AA0)
+        : const Color(0xFFB85C68))
+      : (theme.brightness == Brightness.dark
+        ? const Color(0xFF86C9AA)
+        : const Color(0xFF4B9675));
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -1045,6 +1049,11 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                 selected: {_selectedType},
                 style: ButtonStyle(
                   visualDensity: VisualDensity.comfortable,
+                  side: const WidgetStatePropertyAll(BorderSide.none),
+                  shape: WidgetStatePropertyAll(
+                    RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
                   foregroundColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) return colors.onPrimary;
                     return colors.onSurfaceVariant;
@@ -1072,33 +1081,42 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   fontWeight: FontWeight.w600,
                 )),
             const SizedBox(height: 4),
-            TextField(
-              controller: _amountController,
-              autofocus: true,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              style: theme.textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: accent,
+            Container(
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                        alpha: theme.brightness == Brightness.dark ? 0.20 : 0.07),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              decoration: InputDecoration(
-                hintText: '0.00',
-                prefixText: '¥ ',
-                prefixStyle: theme.textTheme.titleLarge?.copyWith(
-                  color: accent,
+              child: TextField(
+                controller: _amountController,
+                autofocus: true,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                style: theme.textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.w700,
+                  color: accent,
                 ),
-                filled: true,
-                fillColor: accent.withValues(alpha: 0.08),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: accent, width: 1.5),
+                decoration: InputDecoration(
+                  hintText: '0.00',
+                  prefixText: '¥ ',
+                  prefixStyle: theme.textTheme.titleLarge?.copyWith(
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: 16),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                 ),
               ),
             ),
