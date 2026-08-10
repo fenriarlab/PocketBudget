@@ -322,7 +322,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         expenseCategories: _expenseCategories,
         onAddCategory: (name) async {
           final category = await _categoryRepository.addExpenseCategory(name);
-          await _loadData();
           return category;
         },
         onSave: (transaction) async {
@@ -364,7 +363,6 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         expenseCategories: _expenseCategories,
         onAddCategory: (name) async {
           final category = await _categoryRepository.addExpenseCategory(name);
-          await _loadData();
           return category;
         },
         onSave: (updatedTransaction) async {
@@ -1402,33 +1400,68 @@ class _TransactionSheetState extends State<_TransactionSheet> {
   }
 
   Future<String?> _showAddCategoryDialog(BuildContext context) async {
-    final controller = TextEditingController();
     final l10n = AppLocalizations.of(context)!;
     final name = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.addExpenseCategory),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 20,
-          decoration: InputDecoration(labelText: l10n.categoryNameLabel),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            child: Text(l10n.save),
-          ),
-        ],
-      ),
+      builder: (dialogContext) => _AddCategoryDialog(l10n: l10n),
     );
-    controller.dispose();
+    await WidgetsBinding.instance.endOfFrame;
     return name;
+  }
+}
+
+class _AddCategoryDialog extends StatefulWidget {
+  final AppLocalizations l10n;
+
+  const _AddCategoryDialog({required this.l10n});
+
+  @override
+  State<_AddCategoryDialog> createState() => _AddCategoryDialogState();
+}
+
+class _AddCategoryDialogState extends State<_AddCategoryDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _close([String? name]) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop(name ?? _controller.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.l10n.addExpenseCategory),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 20,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _close(),
+        decoration: InputDecoration(labelText: widget.l10n.categoryNameLabel),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => _close(''),
+          child: Text(widget.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _close,
+          child: Text(widget.l10n.save),
+        ),
+      ],
+    );
   }
 }
 
