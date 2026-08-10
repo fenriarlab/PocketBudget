@@ -11,6 +11,8 @@ class SettingsScreen extends StatelessWidget {
   final bool privacyDefaultHidden;
   final ValueChanged<bool> onPrivacyDefaultChanged;
   final String currencyCode;
+  final double initialBalance;
+  final VoidCallback? onEditInitialBalance;
   final Future<void> Function()? onResetData;
   final VoidCallback? onExportReadableBackup;
   final VoidCallback? onExportEncryptedBackup;
@@ -25,6 +27,8 @@ class SettingsScreen extends StatelessWidget {
       required this.privacyDefaultHidden,
       required this.onPrivacyDefaultChanged,
       this.currencyCode = 'CNY',
+      this.initialBalance = 0,
+      this.onEditInitialBalance,
       this.onResetData,
       this.onExportReadableBackup,
       this.onExportEncryptedBackup,
@@ -84,6 +88,24 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
         ),
+        if (onEditInitialBalance != null) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.account_balance_wallet_outlined),
+              title: Text(l10n.initialBalanceTitle),
+              subtitle: Text(l10n.initialBalanceSubtitle),
+              trailing: Text(
+                privacyDefaultHidden
+                    ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
+                    : CurrencyCatalog.byCode(currencyCode)
+                        .format(initialBalance, 'en'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              onTap: onEditInitialBalance,
+            ),
+          ),
+        ],
         if (onResetData != null) ...[
           const SizedBox(height: 12),
           Card(

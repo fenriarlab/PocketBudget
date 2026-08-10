@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 /// 100% 本地存储数据库服务 (SQLite)
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
-  static const int currentDatabaseVersion = 5;
+  static const int currentDatabaseVersion = 6;
   static Database? _database;
 
   DatabaseHelper._init();
@@ -27,7 +27,13 @@ class DatabaseHelper {
 
   Future<bool> hasFinancialData() async {
     final db = await database;
-    const tables = ['transactions', 'budgets', 'savings_goals', 'savings_logs'];
+    const tables = [
+      'transactions',
+      'budgets',
+      'savings_goals',
+      'savings_logs',
+      'initial_balance',
+    ];
     for (final table in tables) {
       final count = Sqflite.firstIntValue(
             await db.rawQuery('SELECT COUNT(*) FROM $table'),
@@ -46,6 +52,7 @@ class DatabaseHelper {
       await txn.delete('savings_goals');
       await txn.delete('transactions');
       await txn.delete('budgets');
+      await txn.delete('initial_balance');
       await txn.delete('categories', where: 'is_custom = 1');
     });
   }
@@ -143,6 +150,13 @@ class DatabaseHelper {
     ''');
     await db.execute(
         'CREATE INDEX budget_allocations_period_idx ON budget_allocations(period)');
+    await db.execute('''
+      CREATE TABLE initial_balance (
+        id TEXT PRIMARY KEY,
+        amount REAL NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
 
     // 初始化默认分类
     await _insertDefaultCategories(db);
@@ -171,6 +185,15 @@ class DatabaseHelper {
     if (oldVersion < 5) {
       await _ensureSavingsGoalSchema(db);
       await _migrateBudgetAllocations(db);
+    }
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS initial_balance (
+          id TEXT PRIMARY KEY,
+          amount REAL NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      ''');
     }
   }
 

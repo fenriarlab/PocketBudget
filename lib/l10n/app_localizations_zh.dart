@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'PocketBudget 简预算';
+  String get appTitle => 'PocketBudget';
 
   @override
   String get offlineBadge => '100% 本地留存';
@@ -124,6 +124,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get currencyLockedSubtitle => '用于所有金额和报表，已有数据后不可更改';
+
+  @override
+  String get initialBalanceTitle => '初始余额';
+
+  @override
+  String get initialBalanceSubtitle => '开始使用时已有的资金，不计入收入统计';
+
+  @override
+  String get initialBalanceLabel => '起始金额';
+
+  @override
+  String get initialBalanceHint => '输入开始使用 PocketBudget 时已有的可用资金';
+
+  @override
+  String get initialBalanceInvalid => '请输入大于或等于 0 的有效金额';
+
+  @override
+  String get initialBalanceSaveFailed => '初始余额保存失败';
 
   @override
   String get currencySetupTitle => '选择记账货币';

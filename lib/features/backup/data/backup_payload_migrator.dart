@@ -1,10 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 
 class BackupPayloadMigrator {
-  static const int currentSchemaVersion = 1;
+  static const int currentSchemaVersion = 2;
 
   static Map<String, dynamic> normalize(Map<String, dynamic> payload) {
-    if (payload['schema_version'] != currentSchemaVersion) {
+    final schemaVersion = payload['schema_version'];
+    if (schemaVersion != 1 && schemaVersion != currentSchemaVersion) {
       throw const FormatException('Unsupported backup payload schema');
     }
     final data = payload['data'];
@@ -21,9 +22,15 @@ class BackupPayloadMigrator {
         throw FormatException('Backup table is invalid: $table');
       }
     }
+    final normalizedData = Map<String, dynamic>.from(data);
+    if (schemaVersion == 1) {
+      normalizedData['initial_balance'] = <Map<String, dynamic>>[];
+    } else if (normalizedData['initial_balance'] is! List) {
+      throw const FormatException('Backup table is invalid: initial_balance');
+    }
     return {
       'schema_version': currentSchemaVersion,
-      'data': Map<String, dynamic>.from(data),
+      'data': normalizedData,
     };
   }
 
@@ -37,6 +44,7 @@ class BackupPayloadMigrator {
     await txn.delete('savings_logs');
     await txn.delete('budget_allocations');
     await txn.delete('budgets');
+    await txn.delete('initial_balance');
 
     final transactions = [
       for (final item in data['transactions'] as List)
@@ -98,6 +106,23 @@ class BackupPayloadMigrator {
         Map<String, dynamic>.from(item as Map),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+    }
+    final initialBalances = data['initial_balance'] as List;
+    if (initialBalances.length > 1) {
+      throw const FormatException('Backup contains multiple initial balances');
+    }
+    if (initialBalances.isNotEmpty) {
+      final balance = Map<String, dynamic>.from(initialBalances.single as Map);
+      final amount = balance['amount'];
+      if (amount is! num || !amount.isFinite || amount < 0) {
+        throw const FormatException('Backup initial balance is invalid');
+      }
+      await txn.insert('initial_balance', {
+        'id': 'account',
+        'amount': amount.toDouble(),
+        'updated_at': (balance['updated_at'] as num?)?.toInt() ??
+            DateTime.now().millisecondsSinceEpoch,
+      });
     }
 
     final goals = await txn.query('savings_goals', columns: ['id']);

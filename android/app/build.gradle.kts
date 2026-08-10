@@ -57,6 +57,21 @@ tasks.configureEach {
             }
         }
     }
+    if (name == "bundleRelease") {
+        doLast {
+            val versionName = project.findProperty("version-name")?.toString()
+                ?: android.defaultConfig.versionName
+                ?: "0.0.1"
+            val bundleDir = file("${layout.buildDirectory.get()}/outputs/bundle/release")
+            val defaultBundle = file("$bundleDir/app-release.aab")
+            if (defaultBundle.exists()) {
+                defaultBundle.copyTo(
+                    file("$bundleDir/PocketBudget_v${versionName}_release.aab"),
+                    overwrite = true,
+                )
+            }
+        }
+    }
 }
 
 kotlin {

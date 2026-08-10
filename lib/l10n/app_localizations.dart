@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh, this message translates to:
-  /// **'PocketBudget 简预算'**
+  /// **'PocketBudget'**
   String get appTitle;
 
   /// No description provided for @offlineBadge.
@@ -331,6 +331,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'用于所有金额和报表，已有数据后不可更改'**
   String get currencyLockedSubtitle;
+
+  /// No description provided for @initialBalanceTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'初始余额'**
+  String get initialBalanceTitle;
+
+  /// No description provided for @initialBalanceSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始使用时已有的资金，不计入收入统计'**
+  String get initialBalanceSubtitle;
+
+  /// No description provided for @initialBalanceLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'起始金额'**
+  String get initialBalanceLabel;
+
+  /// No description provided for @initialBalanceHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入开始使用 PocketBudget 时已有的可用资金'**
+  String get initialBalanceHint;
+
+  /// No description provided for @initialBalanceInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入大于或等于 0 的有效金额'**
+  String get initialBalanceInvalid;
+
+  /// No description provided for @initialBalanceSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'初始余额保存失败'**
+  String get initialBalanceSaveFailed;
 
   /// No description provided for @currencySetupTitle.
   ///

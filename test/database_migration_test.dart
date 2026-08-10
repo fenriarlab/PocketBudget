@@ -19,7 +19,7 @@ void main() {
     await databaseFactoryFfi.deleteDatabase(inMemoryDatabasePath);
   });
 
-  test('creates the complete v5 schema', () async {
+  test('creates the complete v6 schema', () async {
     final db = await _openDatabase();
 
     await helper.createSchemaForTest(db);
@@ -28,16 +28,30 @@ void main() {
     final allocationTables = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'budget_allocations'",
     );
+    final initialBalanceTables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'initial_balance'",
+    );
 
     expect(
       goalColumns.map((column) => column['name']),
       contains('status'),
     );
     expect(allocationTables, hasLength(1));
+    expect(initialBalanceTables, hasLength(1));
+    expect(await db.query('initial_balance'), isEmpty);
     expect(
       await db.query('budget_allocations'),
       isEmpty,
     );
+    await db.close();
+  });
+
+  test('adds the initial balance table when upgrading from v5', () async {
+    final db = await _openLegacyDatabase(includeLegacyColumns: true);
+
+    await helper.upgradeSchemaForTest(db, 5, 6);
+
+    expect(await db.query('initial_balance'), isEmpty);
     await db.close();
   });
 

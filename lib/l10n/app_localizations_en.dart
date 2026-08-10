@@ -130,6 +130,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Used for all amounts and reports; locked after data is created';
 
   @override
+  String get initialBalanceTitle => 'Initial balance';
+
+  @override
+  String get initialBalanceSubtitle =>
+      'Starting funds for this account; not counted as income';
+
+  @override
+  String get initialBalanceLabel => 'Starting amount';
+
+  @override
+  String get initialBalanceHint =>
+      'Enter the funds already available when you started';
+
+  @override
+  String get initialBalanceInvalid => 'Enter a valid amount of 0 or more';
+
+  @override
+  String get initialBalanceSaveFailed => 'Initial balance could not be saved';
+
+  @override
   String get currencySetupTitle => 'Choose a bookkeeping currency';
 
   @override

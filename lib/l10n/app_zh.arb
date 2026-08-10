@@ -1,6 +1,6 @@
 {
   "@@locale": "zh",
-  "appTitle": "PocketBudget 简预算",
+  "appTitle": "PocketBudget",
   "offlineBadge": "100% 本地留存",
   "tabDashboard": "看板",
   "tabTransactions": "明细",
@@ -39,6 +39,12 @@
   ,"languageEnglish": "English"
   ,"currencyTitle": "记账货币"
   ,"currencyLockedSubtitle": "用于所有金额和报表，已有数据后不可更改"
+  ,"initialBalanceTitle": "初始余额"
+  ,"initialBalanceSubtitle": "开始使用时已有的资金，不计入收入统计"
+  ,"initialBalanceLabel": "起始金额"
+  ,"initialBalanceHint": "输入开始使用 PocketBudget 时已有的可用资金"
+  ,"initialBalanceInvalid": "请输入大于或等于 0 的有效金额"
+  ,"initialBalanceSaveFailed": "初始余额保存失败"
   ,"currencySetupTitle": "选择记账货币"
   ,"currencySetupMessage": "该货币将用于所有预算、交易、专项储蓄和统计。"
   ,"currencyLabel": "货币"

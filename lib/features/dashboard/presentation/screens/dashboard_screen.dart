@@ -12,6 +12,9 @@ class DashboardScreen extends StatelessWidget {
   final double? monthlyBudget;
   final double monthlyExpense;
   final double monthlyIncome;
+  final double totalIncome;
+  final double totalExpense;
+  final double initialBalance;
   final double budgetedSavings;
   final List<SavingsGoalModel> goals;
   final String currentPeriod;
@@ -32,6 +35,9 @@ class DashboardScreen extends StatelessWidget {
     required this.monthlyBudget,
     required this.monthlyExpense,
     required this.monthlyIncome,
+    this.totalIncome = 0,
+    this.totalExpense = 0,
+    this.initialBalance = 0,
     this.budgetedSavings = 0,
     required this.goals,
     required this.currentPeriod,
@@ -67,11 +73,16 @@ class DashboardScreen extends StatelessWidget {
         : 0.0;
     final totalSavings =
         goals.fold<double>(0, (sum, goal) => sum + goal.currentAmount);
-    final liquidBalance = monthlyIncome - monthlyExpense;
+    final effectiveTotalIncome = totalIncome == 0 ? monthlyIncome : totalIncome;
+    final effectiveTotalExpense =
+      totalExpense == 0 ? monthlyExpense : totalExpense;
+    final totalAssets =
+      initialBalance + effectiveTotalIncome - effectiveTotalExpense;
+    final liquidBalance = totalAssets - totalSavings;
 
     final summary = [
       _AssetBanner(
-        totalAssets: liquidBalance + totalSavings,
+        totalAssets: totalAssets,
         liquidBalance: liquidBalance,
         totalSavings: totalSavings,
         amount: _amount,

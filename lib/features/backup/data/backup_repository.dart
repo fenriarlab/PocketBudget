@@ -44,11 +44,16 @@ class BackupRepository {
     final encrypted = await _cryptoService.encrypt(
       jsonEncode(payload),
       password,
-      aad: _aad(currencyCode, DatabaseHelper.currentDatabaseVersion),
+      aad: _aad(
+        currencyCode,
+        DatabaseHelper.currentDatabaseVersion,
+        BackupPayloadMigrator.currentSchemaVersion,
+      ),
     );
     final envelope = BackupEnvelope(
       currencyCode: currencyCode,
       exportedAt: DateTime.now().toIso8601String(),
+      backupSchemaVersion: BackupPayloadMigrator.currentSchemaVersion,
       databaseSchemaVersion: DatabaseHelper.currentDatabaseVersion,
       encryption: encrypted.toMap(),
       ciphertextBase64: encrypted.ciphertextBase64,
@@ -85,7 +90,11 @@ class BackupRepository {
       final payloadJson = await _cryptoService.decrypt(
         encrypted,
         password,
-        aad: _aad(expectedCurrencyCode, envelope.databaseSchemaVersion),
+        aad: _aad(
+          expectedCurrencyCode,
+          envelope.databaseSchemaVersion,
+          envelope.backupSchemaVersion,
+        ),
       );
       final payload = jsonDecode(payloadJson);
       if (payload is! Map) {
@@ -118,13 +127,18 @@ class BackupRepository {
         'savings_logs': await db.query('savings_logs'),
         'budget_allocations': await db.query('budget_allocations'),
         'budgets': await db.query('budgets'),
+        'initial_balance': await db.query('initial_balance'),
       },
     };
   }
 
-  List<int> _aad(String currencyCode, int databaseSchemaVersion) => utf8.encode(
+  List<int> _aad(
+    String currencyCode,
+    int databaseSchemaVersion,
+    int backupSchemaVersion,
+  ) => utf8.encode(
         'PocketBudget|${BackupEnvelope.currentFormatVersion}|'
-        '${BackupPayloadMigrator.currentSchemaVersion}|$databaseSchemaVersion|$currencyCode',
+        '$backupSchemaVersion|$databaseSchemaVersion|$currencyCode',
       );
 
   String _stringField(Map<String, dynamic> map, String key) {

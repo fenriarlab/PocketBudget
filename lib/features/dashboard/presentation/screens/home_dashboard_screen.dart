@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/currency/currency_definition.dart';
 import '../../../../core/database/database_helper.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/month_period.dart';
@@ -17,6 +18,7 @@ import '../../../savings/data/models/savings_log_model.dart';
 import '../../../savings/data/savings_repository.dart';
 import '../../../plan/presentation/screens/plan_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../initial_balance/data/initial_balance_repository.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../../../transactions/data/transaction_repository.dart';
 import 'dashboard_screen.dart';
@@ -48,6 +50,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final _budgetRepository = BudgetRepository();
   final _budgetAllocationRepository = BudgetAllocationRepository();
   final _backupRepository = BackupRepository();
+  final _initialBalanceRepository = InitialBalanceRepository();
   final _financialCalculator = const MonthlyFinancialCalculator();
 
   int _selectedIndex = 0;
@@ -64,6 +67,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   double _monthlyExpense = 0;
   double _monthlyIncome = 0;
   double _monthlyBudgetedSavings = 0;
+  double _initialBalance = 0;
+  double _totalIncome = 0;
+  double _totalExpense = 0;
 
   String get _currentPeriod => MonthPeriod.fromDate(_selectedMonth).key;
 
@@ -111,6 +117,16 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final budget = await _budgetRepository.getBudget(_currentPeriod);
     final budgetAllocations =
         await _budgetAllocationRepository.getByPeriod(_currentPeriod);
+    final initialBalance = await _initialBalanceRepository.getInitialBalance();
+    var totalIncome = 0.0;
+    var totalExpense = 0.0;
+    for (final transaction in transactions) {
+      if (transaction.type == TransactionType.income) {
+        totalIncome += transaction.amount;
+      } else if (transaction.categoryId != 'cat_savings') {
+        totalExpense += transaction.amount;
+      }
+    }
     final snapshot = _financialCalculator.calculate(
       period: MonthPeriod.parse(_currentPeriod),
       transactions: transactions,
@@ -127,6 +143,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _monthlyIncome = snapshot.income;
       _monthlyBudgetedSavings = snapshot.budgetedSavings;
       _monthlyBudget = budget?.totalBudget;
+      _initialBalance = initialBalance;
+      _totalIncome = totalIncome;
+      _totalExpense = totalExpense;
       _isLoading = false;
     });
   }
@@ -237,6 +256,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onExportReadableBackup: _showExportReadableBackup,
           onExportEncryptedBackup: _showExportEncryptedBackup,
           onRestoreBackup: _showRestoreBackup,
+          initialBalance: _initialBalance,
+          onEditInitialBalance: _showInitialBalanceDialog,
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
         );
@@ -245,6 +266,9 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           monthlyBudget: _monthlyBudget,
           monthlyExpense: _monthlyExpense,
           monthlyIncome: _monthlyIncome,
+          totalIncome: _totalIncome,
+          totalExpense: _totalExpense,
+          initialBalance: _initialBalance,
           budgetedSavings: _monthlyBudgetedSavings,
           goals: _goals,
           currentPeriod: _currentPeriod,
@@ -597,6 +621,28 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     );
   }
 
+  Future<void> _showInitialBalanceDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (dialogContext) => _InitialBalanceDialog(
+        initialBalance: _initialBalance,
+        currencySymbol: CurrencyCatalog.byCode(widget.currencyCode).symbol,
+      ),
+    );
+    if (amount == null) return;
+    try {
+      await _initialBalanceRepository.setInitialBalance(amount);
+      await _loadData();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.initialBalanceSaveFailed)),
+        );
+      }
+    }
+  }
+
   Future<void> _confirmAndResetData() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -623,6 +669,81 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     if (confirmed != true) return;
     await DatabaseHelper.instance.resetFinancialData();
     await widget.onCurrencyReset();
+  }
+}
+
+class _InitialBalanceDialog extends StatefulWidget {
+  final double initialBalance;
+  final String currencySymbol;
+
+  const _InitialBalanceDialog({
+    required this.initialBalance,
+    required this.currencySymbol,
+  });
+
+  @override
+  State<_InitialBalanceDialog> createState() => _InitialBalanceDialogState();
+}
+
+class _InitialBalanceDialogState extends State<_InitialBalanceDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.initialBalance.toStringAsFixed(2),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final amount = double.tryParse(_controller.text.trim());
+    if (amount == null || !amount.isFinite || amount < 0) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.initialBalanceInvalid)),
+      );
+      return;
+    }
+    Navigator.pop(context, amount);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(l10n.initialBalanceTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+        ],
+        decoration: InputDecoration(
+          labelText: l10n.initialBalanceLabel,
+          prefixText: '${widget.currencySymbol} ',
+          helperText: l10n.initialBalanceHint,
+        ),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _save,
+          child: Text(l10n.save),
+        ),
+      ],
+    );
   }
 }
 
