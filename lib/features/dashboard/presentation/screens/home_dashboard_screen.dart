@@ -10,6 +10,8 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/utils/month_period.dart';
 import '../../../analysis/presentation/screens/analysis_screen.dart';
 import '../../../backup/data/backup_repository.dart';
+import '../../../categories/data/category_repository.dart';
+import '../../../categories/data/models/category_model.dart';
 import '../../../budget/data/budget_allocation_repository.dart';
 import '../../../budget/data/budget_repository.dart';
 import '../../domain/services/monthly_financial_calculator.dart';
@@ -51,6 +53,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   final _budgetAllocationRepository = BudgetAllocationRepository();
   final _backupRepository = BackupRepository();
   final _initialBalanceRepository = InitialBalanceRepository();
+  final _categoryRepository = CategoryRepository();
   final _financialCalculator = const MonthlyFinancialCalculator();
 
   int _selectedIndex = 0;
@@ -70,6 +73,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   double _initialBalance = 0;
   double _totalIncome = 0;
   double _totalExpense = 0;
+  List<CategoryModel> _expenseCategories = [];
 
   String get _currentPeriod => MonthPeriod.fromDate(_selectedMonth).key;
 
@@ -118,6 +122,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final budgetAllocations =
         await _budgetAllocationRepository.getByPeriod(_currentPeriod);
     final initialBalance = await _initialBalanceRepository.getInitialBalance();
+    final expenseCategories = await _categoryRepository.getCategories(type: CategoryType.expense);
+    _expenseCategories = expenseCategories;
     var totalIncome = 0.0;
     var totalExpense = 0.0;
     for (final transaction in transactions) {
@@ -146,6 +152,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _initialBalance = initialBalance;
       _totalIncome = totalIncome;
       _totalExpense = totalExpense;
+      _expenseCategories = expenseCategories;
       _isLoading = false;
     });
   }
@@ -258,6 +265,21 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           onRestoreBackup: _showRestoreBackup,
           initialBalance: _initialBalance,
           onEditInitialBalance: _showInitialBalanceDialog,
+          expenseCategories: _expenseCategories,
+          onAddExpenseCategory: (name) async {
+            await _categoryRepository.addExpenseCategory(name);
+            await _loadData();
+          },
+          onDeleteExpenseCategory: (category) async {
+            final deleted = await _categoryRepository.deleteCategory(category);
+            if (!deleted && mounted) {
+              final l10n = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l10n.categoryInUse)),
+              );
+            }
+            await _loadData();
+          },
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
         );
@@ -296,6 +318,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       isScrollControlled: true,
       builder: (sheetContext) => _TransactionSheet(
         date: date,
+        expenseCategories: _expenseCategories,
         onSave: (transaction) async {
           await _transactionRepository.insertTransaction(transaction);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -332,6 +355,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       builder: (sheetContext) => _TransactionSheet(
         date: transaction.date,
         initialTransaction: transaction,
+        expenseCategories: _expenseCategories,
         onSave: (updatedTransaction) async {
           await _transactionRepository.updateTransaction(updatedTransaction);
           if (sheetContext.mounted) Navigator.pop(sheetContext);
@@ -879,11 +903,16 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
 
 class _TransactionSheet extends StatefulWidget {
   final DateTime date;
+  final List<CategoryModel> expenseCategories;
   final TransactionModel? initialTransaction;
   final Future<void> Function(TransactionModel transaction) onSave;
 
-  const _TransactionSheet(
-      {required this.date, this.initialTransaction, required this.onSave});
+  const _TransactionSheet({
+    required this.date,
+    required this.expenseCategories,
+    this.initialTransaction,
+    required this.onSave,
+  });
 
   @override
   State<_TransactionSheet> createState() => _TransactionSheetState();
@@ -893,7 +922,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   TransactionType _selectedType = TransactionType.expense;
-  String _category = '餐饮';
+  String _category = 'cat_food';
   String _icon = '🍔';
 
   @override
@@ -904,7 +933,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       _amountController.text = transaction.amount.toStringAsFixed(2);
       _noteController.text = transaction.note ?? '';
       _selectedType = transaction.type;
-      _category = transaction.categoryName;
+      _category = transaction.categoryId;
       _icon = transaction.categoryIcon;
     }
   }
@@ -919,104 +948,232 @@ class _TransactionSheetState extends State<_TransactionSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final categories = _selectedType == TransactionType.expense
-        ? const {'餐饮': '🍔', '交通': '🚌', '购物': '🛍️', '居住': '🏠', '娱乐': '🎮'}
-        : const {'工资收入': '💰', '理财/奖金': '📈'};
+        ? {for (final category in widget.expenseCategories) category.id: category}
+        : const {
+            'cat_salary': CategoryModel(
+              id: 'cat_salary',
+              name: '工资收入',
+              icon: '💰',
+              type: CategoryType.income,
+              isCustom: false,
+            ),
+            'cat_bonus': CategoryModel(
+              id: 'cat_bonus',
+              name: '理财/奖金',
+              icon: '📈',
+              type: CategoryType.income,
+              isCustom: false,
+            ),
+          };
+    final selectedCategory = categories[_category] ??
+        categories.values.cast<CategoryModel?>().firstWhere(
+              (category) => category?.name == widget.initialTransaction?.categoryName,
+              orElse: () => null,
+            );
+
+    final accent = _selectedType == TransactionType.expense
+        ? colors.error
+        : colors.tertiary;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                  widget.initialTransaction == null
-                      ? l10n.newTransactionTitle
-                      : l10n.editTransactionTitle,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-              SegmentedButton<TransactionType>(
+          24, 10, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.onSurface.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.initialTransaction == null
+                            ? l10n.newTransactionTitle
+                            : l10n.editTransactionTitle,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '${widget.date.year}/${widget.date.month.toString().padLeft(2, '0')}/${widget.date.day.toString().padLeft(2, '0')}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.receipt_long_outlined, color: accent),
+              ],
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<TransactionType>(
                 segments: [
                   ButtonSegment(
-                      value: TransactionType.expense,
-                      label: Text(l10n.expenseType)),
+                    value: TransactionType.expense,
+                    icon: const Icon(Icons.arrow_upward_rounded),
+                    label: Text(l10n.expenseType),
+                  ),
                   ButtonSegment(
-                      value: TransactionType.income,
-                      label: Text(l10n.incomeType)),
+                    value: TransactionType.income,
+                    icon: const Icon(Icons.arrow_downward_rounded),
+                    label: Text(l10n.incomeType),
+                  ),
                 ],
                 selected: {_selectedType},
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.comfortable,
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) return colors.onPrimary;
+                    return colors.onSurfaceVariant;
+                  }),
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) return accent;
+                    return colors.surfaceContainerHighest.withValues(alpha: 0.45);
+                  }),
+                ),
                 onSelectionChanged: (value) => setState(() {
                   _selectedType = value.first;
-                  _category =
-                      _selectedType == TransactionType.expense ? '餐饮' : '工资收入';
-                  _icon =
-                      _selectedType == TransactionType.expense ? '🍔' : '💰';
+                  _category = _selectedType == TransactionType.expense
+                      ? widget.expenseCategories.first.id
+                      : 'cat_salary';
+                  _icon = _selectedType == TransactionType.expense
+                      ? widget.expenseCategories.first.icon
+                      : '💰';
                 }),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountController,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-                labelText: l10n.amountLabel,
-                prefixText: '¥ ',
-                border: OutlineInputBorder()),
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _category,
-            decoration: InputDecoration(
-                labelText: l10n.categoryLabel,
-                border: const OutlineInputBorder()),
-            items: categories.entries
-                .map((entry) => DropdownMenuItem(
-                    value: entry.key,
-                    child: Text(
-                        '${entry.value} ${_localizedCategory(entry.key, l10n)}')))
-                .toList(),
-            onChanged: (value) => setState(() {
-              _category = value!;
-              _icon = categories[_category]!;
-            }),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                  labelText: l10n.noteLabel,
-                  border: const OutlineInputBorder())),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                final amount = double.tryParse(_amountController.text.trim());
-                if (amount == null || amount <= 0) return;
-                await widget.onSave(TransactionModel(
-                  id: widget.initialTransaction?.id ??
-                      'tx_${DateTime.now().microsecondsSinceEpoch}',
-                  amount: amount,
-                  type: _selectedType,
-                  categoryId: _category,
-                  categoryName: _category,
-                  categoryIcon: _icon,
-                  date: widget.date,
-                  note: _noteController.text.trim(),
-                ));
-              },
-              child: Text(widget.initialTransaction == null
-                  ? l10n.saveToLocal
-                  : l10n.saveChanges),
             ),
-          ),
-        ],
+            const SizedBox(height: 22),
+            Text(l10n.amountLabel,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                )),
+            const SizedBox(height: 4),
+            TextField(
+              controller: _amountController,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: accent,
+              ),
+              decoration: InputDecoration(
+                hintText: '0.00',
+                prefixText: '¥ ',
+                prefixStyle: theme.textTheme.titleLarge?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w700,
+                ),
+                filled: true,
+                fillColor: accent.withValues(alpha: 0.08),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: accent, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _TransactionFieldTile(
+              icon: selectedCategory?.icon ?? '🏷️',
+              label: l10n.categoryLabel,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: selectedCategory?.id,
+                  isExpanded: true,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  items: categories.entries
+                      .map((entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(_localizedCategory(entry.value.name, l10n)),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _category = value!;
+                    _icon = categories[_category]!.icon;
+                  }),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _TransactionFieldTile(
+              icon: Icons.notes_outlined,
+              label: l10n.noteLabel,
+              child: TextField(
+                controller: _noteController,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  hintText: l10n.noNote,
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.check_rounded),
+                label: Text(widget.initialTransaction == null
+                    ? l10n.saveToLocal
+                    : l10n.saveChanges),
+                style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: colors.onPrimary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () async {
+                  final amount =
+                      double.tryParse(_amountController.text.trim());
+                  if (amount == null || amount <= 0) return;
+                  await widget.onSave(TransactionModel(
+                    id: widget.initialTransaction?.id ??
+                        'tx_${DateTime.now().microsecondsSinceEpoch}',
+                    amount: amount,
+                    type: _selectedType,
+                    categoryId: selectedCategory?.id ?? _category,
+                    categoryName: selectedCategory?.name ?? _category,
+                    categoryIcon: _icon,
+                    date: widget.date,
+                    note: _noteController.text.trim(),
+                  ));
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1040,6 +1197,47 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       default:
         return category;
     }
+  }
+}
+
+class _TransactionFieldTile extends StatelessWidget {
+  final Object icon;
+  final String label;
+  final Widget child;
+
+  const _TransactionFieldTile({
+    required this.icon,
+    required this.label,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            child: icon is IconData
+                ? Icon(icon as IconData, color: colors.onSurfaceVariant)
+                : Text(icon as String, style: const TextStyle(fontSize: 20)),
+          ),
+          const SizedBox(width: 10),
+          Text(label,
+              style: TextStyle(
+                  color: colors.onSurfaceVariant,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(width: 14),
+          Expanded(child: child),
+        ],
+      ),
+    );
   }
 }
 

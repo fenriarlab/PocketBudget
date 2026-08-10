@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../l10n/app_localizations.dart';
 import '../../../../core/currency/currency_definition.dart';
+import '../../../../l10n/app_localizations.dart';
+import '../../../categories/data/models/category_model.dart';
 
 class SettingsScreen extends StatelessWidget {
   final ThemeMode themeMode;
@@ -17,22 +18,29 @@ class SettingsScreen extends StatelessWidget {
   final VoidCallback? onExportReadableBackup;
   final VoidCallback? onExportEncryptedBackup;
   final VoidCallback? onRestoreBackup;
+  final List<CategoryModel> expenseCategories;
+  final Future<void> Function(String name)? onAddExpenseCategory;
+  final Future<void> Function(CategoryModel category)? onDeleteExpenseCategory;
 
-  const SettingsScreen(
-      {super.key,
-      required this.themeMode,
-      required this.onThemeModeChanged,
-      required this.languagePreference,
-      required this.onLanguageChanged,
-      required this.privacyDefaultHidden,
-      required this.onPrivacyDefaultChanged,
-      this.currencyCode = 'CNY',
-      this.initialBalance = 0,
-      this.onEditInitialBalance,
-      this.onResetData,
-      this.onExportReadableBackup,
-      this.onExportEncryptedBackup,
-      this.onRestoreBackup});
+  const SettingsScreen({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    required this.languagePreference,
+    required this.onLanguageChanged,
+    required this.privacyDefaultHidden,
+    required this.onPrivacyDefaultChanged,
+    this.currencyCode = 'CNY',
+    this.initialBalance = 0,
+    this.onEditInitialBalance,
+    this.onResetData,
+    this.onExportReadableBackup,
+    this.onExportEncryptedBackup,
+    this.onRestoreBackup,
+    this.expenseCategories = const [],
+    this.onAddExpenseCategory,
+    this.onDeleteExpenseCategory,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +59,7 @@ class SettingsScreen extends StatelessWidget {
           child: Column(
             children: [
               ListTile(
-                leading: Icon(Icons.palette_outlined),
+                leading: const Icon(Icons.palette_outlined),
                 title: Text(l10n.appearanceTitle),
                 subtitle: Text(l10n.appearanceSubtitle),
               ),
@@ -61,11 +69,11 @@ class SettingsScreen extends StatelessWidget {
                   segments: [
                     ButtonSegment(
                         value: ThemeMode.light,
-                        icon: Icon(Icons.light_mode_outlined),
+                        icon: const Icon(Icons.light_mode_outlined),
                         label: Text(l10n.lightTheme)),
                     ButtonSegment(
                         value: ThemeMode.dark,
-                        icon: Icon(Icons.dark_mode_outlined),
+                        icon: const Icon(Icons.dark_mode_outlined),
                         label: Text(l10n.darkTheme)),
                   ],
                   selected: {themeMode},
@@ -104,6 +112,14 @@ class SettingsScreen extends StatelessWidget {
               ),
               onTap: onEditInitialBalance,
             ),
+          ),
+        ],
+        if (onAddExpenseCategory != null) ...[
+          const SizedBox(height: 12),
+          _ExpenseCategorySettings(
+            categories: expenseCategories,
+            onAdd: onAddExpenseCategory!,
+            onDelete: onDeleteExpenseCategory,
           ),
         ],
         if (onResetData != null) ...[
@@ -199,5 +215,82 @@ class SettingsScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _ExpenseCategorySettings extends StatelessWidget {
+  final List<CategoryModel> categories;
+  final Future<void> Function(String name) onAdd;
+  final Future<void> Function(CategoryModel category)? onDelete;
+
+  const _ExpenseCategorySettings({
+    required this.categories,
+    required this.onAdd,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.category_outlined),
+            title: Text(l10n.expenseCategoriesTitle),
+            subtitle: Text(l10n.expenseCategoriesSubtitle),
+            trailing: IconButton(
+              tooltip: l10n.addExpenseCategory,
+              icon: const Icon(Icons.add),
+              onPressed: () => _showAddDialog(context),
+            ),
+          ),
+          ...categories.map((category) => ListTile(
+                leading: Text(category.icon,
+                    style: const TextStyle(fontSize: 20)),
+                title: Text(category.name),
+                trailing: category.isCustom
+                    ? IconButton(
+                        tooltip: l10n.delete,
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => onDelete?.call(category),
+                      )
+                    : null,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          title: Text(l10n.addExpenseCategory),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            maxLength: 20,
+            decoration: InputDecoration(labelText: l10n.categoryNameLabel),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, controller.text.trim()),
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (name != null && name.isNotEmpty) await onAdd(name);
   }
 }

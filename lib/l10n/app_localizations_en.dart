@@ -361,6 +361,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryEntertainment => 'Entertainment';
 
   @override
+  String get expenseCategoriesTitle => 'Expense categories';
+
+  @override
+  String get expenseCategoriesSubtitle =>
+      'Customize the categories used when recording expenses';
+
+  @override
+  String get addExpenseCategory => 'Add expense category';
+
+  @override
+  String get categoryNameLabel => 'Category name';
+
+  @override
+  String get categoryInUse =>
+      'This category is used by existing transactions and cannot be deleted';
+
+  @override
   String get categorySalary => 'Salary';
 
   @override

@@ -348,6 +348,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get categoryEntertainment => '娱乐';
 
   @override
+  String get expenseCategoriesTitle => '消费类别';
+
+  @override
+  String get expenseCategoriesSubtitle => '自定义记账时使用的消费类别';
+
+  @override
+  String get addExpenseCategory => '新增消费类别';
+
+  @override
+  String get categoryNameLabel => '类别名称';
+
+  @override
+  String get categoryInUse => '该类别已有记账记录，暂时无法删除';
+
+  @override
   String get categorySalary => '工资';
 
   @override

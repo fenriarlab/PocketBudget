@@ -728,6 +728,36 @@ abstract class AppLocalizations {
   /// **'娱乐'**
   String get categoryEntertainment;
 
+  /// No description provided for @expenseCategoriesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'消费类别'**
+  String get expenseCategoriesTitle;
+
+  /// No description provided for @expenseCategoriesSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义记账时使用的消费类别'**
+  String get expenseCategoriesSubtitle;
+
+  /// No description provided for @addExpenseCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增消费类别'**
+  String get addExpenseCategory;
+
+  /// No description provided for @categoryNameLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'类别名称'**
+  String get categoryNameLabel;
+
+  /// No description provided for @categoryInUse.
+  ///
+  /// In zh, this message translates to:
+  /// **'该类别已有记账记录，暂时无法删除'**
+  String get categoryInUse;
+
   /// No description provided for @categorySalary.
   ///
   /// In zh, this message translates to:
