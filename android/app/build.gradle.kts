@@ -46,14 +46,11 @@ tasks.configureEach {
             val releaseApkDir = file("${layout.buildDirectory.get()}/outputs/apk/release")
             val targetName = "PocketBudget_v${versionName}_release.apk"
 
-            val defaultFlutterApk = file("$flutterApkDir/app-release.apk")
-            if (defaultFlutterApk.exists()) {
-                defaultFlutterApk.copyTo(file("$flutterApkDir/$targetName"), overwrite = true)
-            }
-
             val defaultReleaseApk = file("$releaseApkDir/app-release.apk")
             if (defaultReleaseApk.exists()) {
                 defaultReleaseApk.copyTo(file("$releaseApkDir/$targetName"), overwrite = true)
+                flutterApkDir.mkdirs()
+                defaultReleaseApk.copyTo(file("$flutterApkDir/$targetName"), overwrite = true)
             }
         }
     }
