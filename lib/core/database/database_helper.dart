@@ -4,7 +4,7 @@ import 'package:path/path.dart';
 /// 100% 本地存储数据库服务 (SQLite)
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
-  static const int currentDatabaseVersion = 6;
+  static const int currentDatabaseVersion = 7;
   static Database? _database;
 
   DatabaseHelper._init();
@@ -195,6 +195,9 @@ class DatabaseHelper {
         )
       ''');
     }
+    if (oldVersion < 7) {
+      await _insertMissingBuiltInCategories(db);
+    }
   }
 
   Future<void> _ensureSavingsGoalSchema(Database db) async {
@@ -324,6 +327,41 @@ class DatabaseHelper {
         'type': 'EXPENSE'
       },
       {
+        'id': 'cat_daily',
+        'name': '日用',
+        'icon_name': 'inventory_2',
+        'color_hex': '#67B7C7',
+        'type': 'EXPENSE'
+      },
+      {
+        'id': 'cat_communication',
+        'name': '通讯',
+        'icon_name': 'phone_iphone',
+        'color_hex': '#6688EA',
+        'type': 'EXPENSE'
+      },
+      {
+        'id': 'cat_education',
+        'name': '教育',
+        'icon_name': 'menu_book',
+        'color_hex': '#5DB7A8',
+        'type': 'EXPENSE'
+      },
+      {
+        'id': 'cat_medical',
+        'name': '医疗',
+        'icon_name': 'medical_services',
+        'color_hex': '#E95E68',
+        'type': 'EXPENSE'
+      },
+      {
+        'id': 'cat_other',
+        'name': '其他',
+        'icon_name': 'more_horiz',
+        'color_hex': '#8791A5',
+        'type': 'EXPENSE'
+      },
+      {
         'id': 'cat_salary',
         'name': '工资收入',
         'icon_name': 'account_balance_wallet',
@@ -341,6 +379,60 @@ class DatabaseHelper {
 
     for (var cat in defaults) {
       await db.insert('categories', cat);
+    }
+  }
+
+  Future<void> _insertMissingBuiltInCategories(Database db) async {
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'categories'",
+    );
+    if (tables.isEmpty) return;
+
+    const missingCategories = [
+      {
+        'id': 'cat_daily',
+        'name': '日用',
+        'icon_name': 'inventory_2',
+        'color_hex': '#67B7C7',
+        'type': 'EXPENSE',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_communication',
+        'name': '通讯',
+        'icon_name': 'phone_iphone',
+        'color_hex': '#6688EA',
+        'type': 'EXPENSE',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_education',
+        'name': '教育',
+        'icon_name': 'menu_book',
+        'color_hex': '#5DB7A8',
+        'type': 'EXPENSE',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_medical',
+        'name': '医疗',
+        'icon_name': 'medical_services',
+        'color_hex': '#E95E68',
+        'type': 'EXPENSE',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_other',
+        'name': '其他',
+        'icon_name': 'more_horiz',
+        'color_hex': '#8791A5',
+        'type': 'EXPENSE',
+        'is_custom': 0,
+      },
+    ];
+    for (final category in missingCategories) {
+      await db.insert('categories', category,
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 

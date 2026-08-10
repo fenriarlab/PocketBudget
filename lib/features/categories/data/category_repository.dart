@@ -69,6 +69,46 @@ class CategoryRepository {
         isCustom: false,
       ),
       CategoryModel(
+        id: 'cat_daily',
+        name: '日用',
+        icon: '📦',
+        colorHex: '#67B7C7',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_communication',
+        name: '通讯',
+        icon: '📱',
+        colorHex: '#6688EA',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_education',
+        name: '教育',
+        icon: '📖',
+        colorHex: '#5DB7A8',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_medical',
+        name: '医疗',
+        icon: '🩺',
+        colorHex: '#E95E68',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_other',
+        name: '其他',
+        icon: '•••',
+        colorHex: '#8791A5',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
         id: 'cat_salary',
         name: '工资收入',
         icon: '💰',
@@ -92,13 +132,21 @@ class CategoryRepository {
 
   Future<void> addExpenseCategory(String name) async {
     final db = await _dbHelper.database;
+    const colors = [
+      '#F08A8F',
+      '#7296E8',
+      '#E6A24C',
+      '#6AB8B2',
+      '#9A7BE8',
+    ];
+    final color = colors[DateTime.now().microsecondsSinceEpoch % colors.length];
     await db.insert(
       'categories',
       CategoryModel(
         id: 'cat_custom_${DateTime.now().microsecondsSinceEpoch}',
         name: name,
         icon: '🏷️',
-        colorHex: '#8791A5',
+        colorHex: color,
         type: CategoryType.expense,
         isCustom: true,
       ).toMap(),
