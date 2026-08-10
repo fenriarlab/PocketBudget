@@ -950,29 +950,14 @@ class _TransactionSheetState extends State<_TransactionSheet> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final categories = _selectedType == TransactionType.expense
-        ? {for (final category in widget.expenseCategories) category.id: category}
-        : const {
-            'cat_salary': CategoryModel(
-              id: 'cat_salary',
-              name: '工资收入',
-              icon: '💰',
-              type: CategoryType.income,
-              isCustom: false,
-            ),
-            'cat_bonus': CategoryModel(
-              id: 'cat_bonus',
-              name: '理财/奖金',
-              icon: '📈',
-              type: CategoryType.income,
-              isCustom: false,
-            ),
-          };
+    final categories = _categoriesForType(_selectedType);
     final selectedCategory = categories[_category] ??
         categories.values.cast<CategoryModel?>().firstWhere(
-              (category) => category?.name == widget.initialTransaction?.categoryName,
+              (category) =>
+                  category?.name == widget.initialTransaction?.categoryName,
               orElse: () => null,
             );
+    final selectedCategoryId = selectedCategory?.id;
 
     final accent = _selectedType == TransactionType.expense
       ? (theme.brightness == Brightness.dark
@@ -1063,15 +1048,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                     return colors.surfaceContainerHighest.withValues(alpha: 0.45);
                   }),
                 ),
-                onSelectionChanged: (value) => setState(() {
-                  _selectedType = value.first;
-                  _category = _selectedType == TransactionType.expense
-                      ? widget.expenseCategories.first.id
-                      : 'cat_salary';
-                  _icon = _selectedType == TransactionType.expense
-                      ? widget.expenseCategories.first.icon
-                      : '💰';
-                }),
+                onSelectionChanged: (value) => _selectType(value.first),
               ),
             ),
             const SizedBox(height: 22),
@@ -1126,7 +1103,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
               label: l10n.categoryLabel,
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
-                  value: selectedCategory?.id,
+                  value: selectedCategoryId,
                   isExpanded: true,
                   icon: const Icon(Icons.keyboard_arrow_down_rounded),
                   items: categories.entries
@@ -1194,6 +1171,81 @@ class _TransactionSheetState extends State<_TransactionSheet> {
         ),
       ),
     );
+  }
+
+  Map<String, CategoryModel> _categoriesForType(TransactionType type) {
+    if (type == TransactionType.expense) {
+      final categories = {
+        for (final category in widget.expenseCategories) category.id: category,
+      };
+      if (categories.isNotEmpty) return categories;
+      return _defaultExpenseCategories;
+    }
+    return const {
+      'cat_salary': CategoryModel(
+        id: 'cat_salary',
+        name: '工资收入',
+        icon: '💰',
+        type: CategoryType.income,
+        isCustom: false,
+      ),
+      'cat_bonus': CategoryModel(
+        id: 'cat_bonus',
+        name: '理财/奖金',
+        icon: '📈',
+        type: CategoryType.income,
+        isCustom: false,
+      ),
+    };
+  }
+
+  static const _defaultExpenseCategories = {
+    'cat_food': CategoryModel(
+      id: 'cat_food',
+      name: '餐饮',
+      icon: '🍔',
+      type: CategoryType.expense,
+      isCustom: false,
+    ),
+    'cat_transport': CategoryModel(
+      id: 'cat_transport',
+      name: '交通',
+      icon: '🚌',
+      type: CategoryType.expense,
+      isCustom: false,
+    ),
+    'cat_shopping': CategoryModel(
+      id: 'cat_shopping',
+      name: '购物',
+      icon: '🛍️',
+      type: CategoryType.expense,
+      isCustom: false,
+    ),
+    'cat_housing': CategoryModel(
+      id: 'cat_housing',
+      name: '居住',
+      icon: '🏠',
+      type: CategoryType.expense,
+      isCustom: false,
+    ),
+    'cat_entertainment': CategoryModel(
+      id: 'cat_entertainment',
+      name: '娱乐',
+      icon: '🎮',
+      type: CategoryType.expense,
+      isCustom: false,
+    ),
+  };
+
+  void _selectType(TransactionType type) {
+    final categories = _categoriesForType(type);
+    if (categories.isEmpty) return;
+    final firstCategory = categories.values.first;
+    setState(() {
+      _selectedType = type;
+      _category = firstCategory.id;
+      _icon = firstCategory.icon;
+    });
   }
 
   String _localizedCategory(String category, AppLocalizations l10n) {

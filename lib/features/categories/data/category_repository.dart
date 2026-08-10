@@ -8,6 +8,13 @@ class CategoryRepository {
 
   Future<List<CategoryModel>> getCategories({CategoryType? type}) async {
     final db = await _dbHelper.database;
+    final categoryCount = Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM categories'),
+        ) ??
+        0;
+    if (categoryCount == 0) {
+      await _insertDefaultCategories(db);
+    }
     final maps = await db.query(
       'categories',
       where: type == null ? null : 'type = ?',
@@ -17,6 +24,63 @@ class CategoryRepository {
       orderBy: 'is_custom ASC, name ASC',
     );
     return maps.map(CategoryModel.fromMap).toList();
+  }
+
+  Future<void> _insertDefaultCategories(Database db) async {
+    const defaults = [
+      CategoryModel(
+        id: 'cat_food',
+        name: '餐饮',
+        icon: '🍔',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_transport',
+        name: '交通',
+        icon: '🚌',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_shopping',
+        name: '购物',
+        icon: '🛍️',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_housing',
+        name: '居住',
+        icon: '🏠',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_entertainment',
+        name: '娱乐',
+        icon: '🎮',
+        type: CategoryType.expense,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_salary',
+        name: '工资收入',
+        icon: '💰',
+        type: CategoryType.income,
+        isCustom: false,
+      ),
+      CategoryModel(
+        id: 'cat_bonus',
+        name: '理财/奖金',
+        icon: '📈',
+        type: CategoryType.income,
+        isCustom: false,
+      ),
+    ];
+    for (final category in defaults) {
+      await db.insert('categories', category.toMap());
+    }
   }
 
   Future<void> addExpenseCategory(String name) async {
