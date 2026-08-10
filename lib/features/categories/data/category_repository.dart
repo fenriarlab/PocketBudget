@@ -103,7 +103,7 @@ class CategoryRepository {
       CategoryModel(
         id: 'cat_other',
         name: '其他',
-        icon: '•••',
+        icon: 'category',
         colorHex: '#8791A5',
         type: CategoryType.expense,
         isCustom: false,

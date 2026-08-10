@@ -1039,7 +1039,8 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                     widget.initialTransaction == null
                         ? l10n.newTransactionTitle
                         : l10n.editTransactionTitle,
-                    style: theme.textTheme.headlineSmall?.copyWith(
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0,
                     ),
@@ -1050,6 +1051,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   style: TextButton.styleFrom(
                     foregroundColor: colors.primary,
                     textStyle: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1068,6 +1070,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
             Text(
               l10n.categoryLabel,
               style: theme.textTheme.labelLarge?.copyWith(
+                fontSize: 14,
                 color: colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
@@ -1113,6 +1116,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                     Text(
                       l10n.amountLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 14,
                         color: colors.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1124,6 +1128,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                         decimal: true,
                       ),
                       style: theme.textTheme.displaySmall?.copyWith(
+                        fontSize: 34,
                         fontWeight: FontWeight.w700,
                         color: accent,
                       ),
@@ -1132,6 +1137,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                         errorText: _amountError,
                         prefixText: '¥ ',
                         prefixStyle: theme.textTheme.titleLarge?.copyWith(
+                          fontSize: 20,
                           color: accent,
                           fontWeight: FontWeight.w700,
                         ),
@@ -1160,6 +1166,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
                   Text(
                     l10n.noteLabel,
                     style: theme.textTheme.labelLarge?.copyWith(
+                      fontSize: 14,
                       color: colors.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1187,7 +1194,8 @@ class _TransactionSheetState extends State<_TransactionSheet> {
               label: l10n.timeLabel,
               child: Text(
                 '${widget.date.year}/${widget.date.month.toString().padLeft(2, '0')}/${widget.date.day.toString().padLeft(2, '0')}',
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontSize: 15,
                   color: colors.onSurface,
                 ),
               ),
@@ -1482,6 +1490,7 @@ class _TransactionTypeTabs extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontSize: 14,
                 color: isSelected ? colors.primary : colors.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -1585,6 +1594,7 @@ class _CategoryGrid extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontSize: 13,
                             fontWeight:
                                 isSelected ? FontWeight.w700 : FontWeight.w500,
                             color: isSelected
@@ -1672,6 +1682,7 @@ class _AddCategoryTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontSize: 12,
                   color: colors.primary,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1707,7 +1718,7 @@ const _builtInCategoryIcons = <String, IconData>{
   'cat_communication': Icons.phone_iphone_outlined,
   'cat_education': Icons.menu_book_outlined,
   'cat_medical': Icons.medical_services_outlined,
-  'cat_other': Icons.more_horiz,
+  'cat_other': Icons.category_outlined,
   'cat_salary': Icons.account_balance_wallet_outlined,
   'cat_bonus': Icons.trending_up,
 };

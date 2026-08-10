@@ -357,7 +357,7 @@ class DatabaseHelper {
       {
         'id': 'cat_other',
         'name': '其他',
-        'icon_name': 'more_horiz',
+        'icon_name': 'category',
         'color_hex': '#8791A5',
         'type': 'EXPENSE'
       },
@@ -424,7 +424,7 @@ class DatabaseHelper {
       {
         'id': 'cat_other',
         'name': '其他',
-        'icon_name': 'more_horiz',
+        'icon_name': 'category',
         'color_hex': '#8791A5',
         'type': 'EXPENSE',
         'is_custom': 0,
