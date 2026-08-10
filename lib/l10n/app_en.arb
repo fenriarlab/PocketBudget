@@ -19,6 +19,7 @@
   "budgetSettingTitle": "Monthly Budget Limit",
   "save": "Save",
   "saveToLocal": "Save Locally",
+  "timeLabel": "Time",
   "amount": "Amount (¥)",
   "note": "Note (e.g. Lunch, Book)",
   "newTransactionTitle": "Record a transaction"

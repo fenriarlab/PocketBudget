@@ -66,6 +66,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get saveToLocal => '保存到本地';
 
   @override
+  String get timeLabel => '时间';
+
+  @override
   String get amount => '金额 (¥)';
 
   @override

@@ -19,6 +19,7 @@
   "budgetSettingTitle": "月度预算设定",
   "save": "保存",
   "saveToLocal": "保存到本地",
+  "timeLabel": "时间",
   "amount": "金额 (¥)",
   "note": "备注 (例如: 午餐、买书)",
   "newTransactionTitle": "记一笔"

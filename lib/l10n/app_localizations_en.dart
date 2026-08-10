@@ -67,6 +67,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveToLocal => 'Save Locally';
 
   @override
+  String get timeLabel => 'Time';
+
+  @override
   String get amount => 'Amount (¥)';
 
   @override

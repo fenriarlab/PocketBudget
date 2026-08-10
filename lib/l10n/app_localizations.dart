@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'保存到本地'**
   String get saveToLocal;
 
+  /// No description provided for @timeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间'**
+  String get timeLabel;
+
   /// No description provided for @amount.
   ///
   /// In zh, this message translates to:
