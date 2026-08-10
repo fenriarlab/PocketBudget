@@ -73,7 +73,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get note => 'Note (e.g. Lunch, Book)';
 
   @override
-  String get newTransactionTitle => 'New Transaction';
+  String get newTransactionTitle => 'Record a transaction';
 
   @override
   String get settingsTitle => 'Settings';
@@ -555,7 +555,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get overwriteRestore => 'Overwrite and restore';
 
   @override
-  String get editTransactionTitle => 'Edit transaction';
+  String get editTransactionTitle => 'Edit record';
 
   @override
   String get expenseType => 'Expense';

@@ -1171,10 +1171,12 @@ class _TransactionSheetState extends State<_TransactionSheet> {
 
   Map<String, CategoryModel> _categoriesForType(TransactionType type) {
     if (type == TransactionType.expense) {
-      final categories = {
-        for (final category in widget.expenseCategories) category.id: category,
+      final categories = [...widget.expenseCategories]
+        ..sort(_compareCategories);
+      final orderedCategories = {
+        for (final category in categories) category.id: category,
       };
-      if (categories.isNotEmpty) return categories;
+      if (orderedCategories.isNotEmpty) return orderedCategories;
       return _defaultExpenseCategories;
     }
     return const {
@@ -1196,6 +1198,31 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       ),
     };
   }
+
+  static int _compareCategories(CategoryModel left, CategoryModel right) {
+    final leftIndex = _categoryOrder.indexOf(left.id);
+    final rightIndex = _categoryOrder.indexOf(right.id);
+    final normalizedLeft = leftIndex < 0 ? _categoryOrder.length : leftIndex;
+    final normalizedRight =
+        rightIndex < 0 ? _categoryOrder.length : rightIndex;
+    if (normalizedLeft != normalizedRight) {
+      return normalizedLeft.compareTo(normalizedRight);
+    }
+    return left.name.compareTo(right.name);
+  }
+
+  static const _categoryOrder = [
+    'cat_food',
+    'cat_transport',
+    'cat_shopping',
+    'cat_daily',
+    'cat_entertainment',
+    'cat_housing',
+    'cat_communication',
+    'cat_education',
+    'cat_medical',
+    'cat_other',
+  ];
 
   static const _defaultExpenseCategories = {
     'cat_food': CategoryModel(
@@ -1222,19 +1249,19 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       type: CategoryType.expense,
       isCustom: false,
     ),
-    'cat_housing': CategoryModel(
-      id: 'cat_housing',
-      name: '居住',
-      icon: '🏠',
-      colorHex: '#63B978',
-      type: CategoryType.expense,
-      isCustom: false,
-    ),
     'cat_entertainment': CategoryModel(
       id: 'cat_entertainment',
       name: '娱乐',
       icon: '🎮',
       colorHex: '#9A75E8',
+      type: CategoryType.expense,
+      isCustom: false,
+    ),
+    'cat_housing': CategoryModel(
+      id: 'cat_housing',
+      name: '居住',
+      icon: '🏠',
+      colorHex: '#63B978',
       type: CategoryType.expense,
       isCustom: false,
     ),
@@ -1308,9 +1335,6 @@ class _CategoryGrid extends StatelessWidget {
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? color.withValues(alpha: 0.16)
-                  : Colors.transparent,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
@@ -1335,8 +1359,7 @@ class _CategoryGrid extends StatelessWidget {
                           ]
                         : null,
                   ),
-                  child: Text(category.icon,
-                      style: const TextStyle(fontSize: 19)),
+                    child: _CategoryGlyph(category: category),
                 ),
                 const SizedBox(height: 5),
                 Text(
@@ -1352,6 +1375,16 @@ class _CategoryGrid extends StatelessWidget {
                             : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                 ),
+                const SizedBox(height: 3),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: isSelected ? 5 : 0,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1360,6 +1393,36 @@ class _CategoryGrid extends StatelessWidget {
     );
   }
 }
+
+class _CategoryGlyph extends StatelessWidget {
+  final CategoryModel category;
+
+  const _CategoryGlyph({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _builtInCategoryIcons[category.id];
+    if (icon != null) {
+      return Icon(icon, size: 20, color: _categoryColor(category.colorHex));
+    }
+    return Text(category.icon, style: const TextStyle(fontSize: 19));
+  }
+}
+
+const _builtInCategoryIcons = <String, IconData>{
+  'cat_food': Icons.restaurant_outlined,
+  'cat_transport': Icons.directions_car_outlined,
+  'cat_shopping': Icons.shopping_bag_outlined,
+  'cat_daily': Icons.inventory_2_outlined,
+  'cat_entertainment': Icons.sports_esports_outlined,
+  'cat_housing': Icons.home_outlined,
+  'cat_communication': Icons.phone_iphone_outlined,
+  'cat_education': Icons.menu_book_outlined,
+  'cat_medical': Icons.medical_services_outlined,
+  'cat_other': Icons.more_horiz,
+  'cat_salary': Icons.account_balance_wallet_outlined,
+  'cat_bonus': Icons.trending_up,
+};
 
 Color _categoryColor(String hex) {
   final normalized = hex.replaceFirst('#', '');

@@ -21,7 +21,7 @@
   "saveToLocal": "Save Locally",
   "amount": "Amount (¥)",
   "note": "Note (e.g. Lunch, Book)",
-  "newTransactionTitle": "New Transaction"
+  "newTransactionTitle": "Record a transaction"
   ,"settingsTitle": "Settings"
   ,"settingsSubtitle": "Manage display preferences and local data"
   ,"appearanceTitle": "Appearance"
@@ -162,7 +162,7 @@
   ,"close": "Close"
   ,"copy": "Copy"
   ,"overwriteRestore": "Overwrite and restore"
-  ,"editTransactionTitle": "Edit transaction"
+  ,"editTransactionTitle": "Edit record"
   ,"expenseType": "Expense"
   ,"incomeType": "Income"
   ,"amountLabel": "Amount"

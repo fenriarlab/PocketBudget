@@ -72,7 +72,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get note => '备注 (例如: 午餐、买书)';
 
   @override
-  String get newTransactionTitle => '新增记账明细';
+  String get newTransactionTitle => '记一笔';
 
   @override
   String get settingsTitle => '我的';
@@ -537,7 +537,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get overwriteRestore => '覆盖恢复';
 
   @override
-  String get editTransactionTitle => '编辑记账明细';
+  String get editTransactionTitle => '编辑记账';
 
   @override
   String get expenseType => '支出';

@@ -227,7 +227,7 @@ abstract class AppLocalizations {
   /// No description provided for @newTransactionTitle.
   ///
   /// In zh, this message translates to:
-  /// **'新增记账明细'**
+  /// **'记一笔'**
   String get newTransactionTitle;
 
   /// No description provided for @settingsTitle.
@@ -1073,7 +1073,7 @@ abstract class AppLocalizations {
   /// No description provided for @editTransactionTitle.
   ///
   /// In zh, this message translates to:
-  /// **'编辑记账明细'**
+  /// **'编辑记账'**
   String get editTransactionTitle;
 
   /// No description provided for @expenseType.

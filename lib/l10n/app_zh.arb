@@ -21,7 +21,7 @@
   "saveToLocal": "保存到本地",
   "amount": "金额 (¥)",
   "note": "备注 (例如: 午餐、买书)",
-  "newTransactionTitle": "新增记账明细"
+  "newTransactionTitle": "记一笔"
   ,"settingsTitle": "我的"
   ,"settingsSubtitle": "管理显示偏好和本地数据"
   ,"appearanceTitle": "外观模式"
@@ -162,7 +162,7 @@
   ,"close": "关闭"
   ,"copy": "复制"
   ,"overwriteRestore": "覆盖恢复"
-  ,"editTransactionTitle": "编辑记账明细"
+  ,"editTransactionTitle": "编辑记账"
   ,"expenseType": "支出"
   ,"incomeType": "收入"
   ,"amountLabel": "金额"
