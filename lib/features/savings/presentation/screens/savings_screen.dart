@@ -136,6 +136,18 @@ class SavingsGoalsSection extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.track_changes_outlined,
+                size: 22, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 10),
           Expanded(
               child: Text(goal.title,
                   style: TextStyle(
@@ -156,6 +168,9 @@ class SavingsGoalsSection extends StatelessWidget {
           ),
           PopupMenuButton<String>(
             tooltip: l10n.goalActions,
+            icon: Icon(Icons.more_vert_rounded,
+                color: colorScheme.onSurfaceVariant),
+            padding: EdgeInsets.zero,
             onSelected: (value) async {
               if (value == 'edit') {
                 onEdit(goal);
@@ -195,13 +210,24 @@ class SavingsGoalsSection extends StatelessWidget {
             ],
           ),
         ]),
-        Text(
-            l10n.goalDeadline(
-                DateFormat.yMd(Localizations.localeOf(context).toLanguageTag())
-                    .format(goal.targetDate),
-                remainingDays),
-            style:
-                TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
+        Row(
+          children: [
+            Icon(Icons.calendar_today_outlined,
+                size: 15, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                l10n.goalDeadline(
+                    DateFormat.yMd(
+                            Localizations.localeOf(context).toLanguageTag())
+                        .format(goal.targetDate),
+                    remainingDays),
+                style: TextStyle(
+                    color: colorScheme.onSurfaceVariant, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -213,11 +239,13 @@ class SavingsGoalsSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _SavingsAmount(
-                label: l10n.savedAmount(_amount(goal.currentAmount)),
+                label: l10n.savedAmountLabel,
+                value: _amount(goal.currentAmount),
                 color: AppColors.income,
               ),
               _SavingsAmount(
-                label: l10n.targetAmount(_amount(goal.targetAmount)),
+                label: l10n.targetAmountLabel,
+                value: _amount(goal.targetAmount),
                 color: colorScheme.onSurface,
                 alignEnd: true,
               ),
@@ -225,6 +253,15 @@ class SavingsGoalsSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(
+              '${goal.progressPercentage.round()}%',
+              style:
+                  TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
@@ -236,9 +273,11 @@ class SavingsGoalsSection extends StatelessWidget {
         ),
         if (!completed && remainingDays > 0) ...[
           const SizedBox(height: 10),
-          Text(l10n.dailyDepositNeeded(_amount(dailyNeeded)),
-              style:
-                  TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
+          _DailyDepositHint(
+            text: l10n.dailyDepositNeeded(_amount(dailyNeeded)),
+            amount: _amount(dailyNeeded),
+            color: colorScheme.primary,
+          ),
         ],
         if (expired) ...[
           const SizedBox(height: 10),
@@ -356,30 +395,71 @@ class _SectionContent extends StatefulWidget {
 
 class _SavingsAmount extends StatelessWidget {
   final String label;
+  final String value;
   final Color color;
   final bool alignEnd;
 
   const _SavingsAmount({
     required this.label,
+    required this.value,
     required this.color,
     this.alignEnd = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: '$label\n',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-      ],
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+      textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+    );
+  }
+}
+
+class _DailyDepositHint extends StatelessWidget {
+  final String text;
+  final String amount;
+  final Color color;
+
+  const _DailyDepositHint({
+    required this.text,
+    required this.amount,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = text.split(amount);
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: parts.first),
+          TextSpan(
+              text: amount,
+              style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+          if (parts.length > 1) TextSpan(text: parts.sublist(1).join(amount)),
+        ],
+      ),
+      style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
     );
   }
 }
@@ -422,6 +502,26 @@ class _SectionContentState extends State<_SectionContent> {
         ),
         child: SegmentedButton<bool>(
           showSelectedIcon: false,
+          style: ButtonStyle(
+            side: WidgetStatePropertyAll(BorderSide.none),
+            shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(11))),
+            padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              return states.contains(WidgetState.selected)
+                  ? colors.surface
+                  : Colors.transparent;
+            }),
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              return states.contains(WidgetState.selected)
+                  ? colors.primary
+                  : colors.onSurfaceVariant;
+            }),
+            elevation: WidgetStateProperty.resolveWith((states) {
+              return states.contains(WidgetState.selected) ? 2 : 0;
+            }),
+          ),
           segments: [
             ButtonSegment(value: false, label: Text(l10n.goalActive)),
             ButtonSegment(value: true, label: Text(l10n.archived)),

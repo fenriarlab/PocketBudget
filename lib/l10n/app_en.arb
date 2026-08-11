@@ -124,6 +124,7 @@
   ,"deleteSavingsGoal": "Delete sinking fund"
   ,"goalDeadline": "Target date: {date} · {days} days left"
   ,"savedAmount": "Saved: {amount}"
+  ,"savedAmountLabel": "Saved"
   ,"targetAmount": "Target: {amount}"
   ,"dailyDepositNeeded": "Deposit {amount} per day to stay on track"
   ,"goalExpiredRemaining": "Target date reached, {amount} still needed"

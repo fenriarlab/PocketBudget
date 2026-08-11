@@ -409,6 +409,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get savedAmountLabel => '已存入';
+
+  @override
   String targetAmount(Object amount) {
     return '目标: $amount';
   }

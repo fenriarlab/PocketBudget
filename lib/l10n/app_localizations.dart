@@ -842,6 +842,12 @@ abstract class AppLocalizations {
   /// **'已存: {amount}'**
   String savedAmount(Object amount);
 
+  /// No description provided for @savedAmountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'已存入'**
+  String get savedAmountLabel;
+
   /// No description provided for @targetAmount.
   ///
   /// In zh, this message translates to:

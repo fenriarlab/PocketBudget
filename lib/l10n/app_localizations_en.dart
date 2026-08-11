@@ -424,6 +424,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get savedAmountLabel => 'Saved';
+
+  @override
   String targetAmount(Object amount) {
     return 'Target: $amount';
   }
