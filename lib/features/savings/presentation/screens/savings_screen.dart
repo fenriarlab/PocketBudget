@@ -121,6 +121,9 @@ class SavingsGoalsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.28),
+        ),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).brightness == Brightness.dark
@@ -132,7 +135,7 @@ class SavingsGoalsSection extends StatelessWidget {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
               child: Text(goal.title,
                   style: TextStyle(
@@ -141,10 +144,10 @@ class SavingsGoalsSection extends StatelessWidget {
                       color: colorScheme.onSurface),
                   overflow: TextOverflow.ellipsis)),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
                 color: statusColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(6)),
+                borderRadius: BorderRadius.circular(999)),
             child: Text(statusLabel,
                 style: TextStyle(
                     fontSize: 11,
@@ -200,18 +203,37 @@ class SavingsGoalsSection extends StatelessWidget {
             style:
                 TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12)),
         const SizedBox(height: 14),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(l10n.savedAmount(_amount(goal.currentAmount)),
-              style: const TextStyle(
-                  color: AppColors.income, fontWeight: FontWeight.bold)),
-          Text(l10n.targetAmount(_amount(goal.targetAmount)),
-              style: TextStyle(color: colorScheme.onSurface))
-        ]),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _SavingsAmount(
+                label: l10n.savedAmount(_amount(goal.currentAmount)),
+                color: AppColors.income,
+              ),
+              _SavingsAmount(
+                label: l10n.targetAmount(_amount(goal.targetAmount)),
+                color: colorScheme.onSurface,
+                alignEnd: true,
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 8),
-        LinearProgressIndicator(
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
             value: goal.progressPercentage / 100,
-            minHeight: 8,
-            color: completed ? AppColors.income : colorScheme.primary),
+            minHeight: 9,
+            color: completed ? AppColors.income : colorScheme.primary,
+            backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.28),
+          ),
+        ),
         if (!completed && remainingDays > 0) ...[
           const SizedBox(height: 10),
           Text(l10n.dailyDepositNeeded(_amount(dailyNeeded)),
@@ -231,25 +253,30 @@ class SavingsGoalsSection extends StatelessWidget {
                   style:
                       TextStyle(color: AppColors.textSecondary, fontSize: 12))),
         const SizedBox(height: 12),
-        Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              TextButton.icon(
-                  onPressed: () => onHistory(goal),
-                  icon: const Icon(Icons.history, size: 16),
-                  label: Text(l10n.savingsHistory)),
-              if (!archived) ...[
-                OutlinedButton(
-                    onPressed: () => onDeposit(goal, true),
-                    child: Text(l10n.withdraw)),
-                ElevatedButton.icon(
-                    onPressed: () => onDeposit(goal, false),
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.deposit)),
-              ],
-            ]),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => onHistory(goal),
+                icon: const Icon(Icons.history_rounded, size: 16),
+                label: Text(l10n.savingsHistory),
+              ),
+            ),
+            if (!archived) ...[
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: () => onDeposit(goal, true),
+                child: Text(l10n.withdraw),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: () => onDeposit(goal, false),
+                icon: const Icon(Icons.add_rounded, size: 17),
+                label: Text(l10n.deposit),
+              ),
+            ],
+          ],
+        ),
       ]),
     );
   }
@@ -327,6 +354,36 @@ class _SectionContent extends StatefulWidget {
   State<_SectionContent> createState() => _SectionContentState();
 }
 
+class _SavingsAmount extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool alignEnd;
+
+  const _SavingsAmount({
+    required this.label,
+    required this.color,
+    this.alignEnd = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _SectionContentState extends State<_SectionContent> {
   bool showingArchived = false;
 
@@ -334,26 +391,47 @@ class _SectionContentState extends State<_SectionContent> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final goals = showingArchived ? widget.archivedGoals : widget.goals;
+    final colors = Theme.of(context).colorScheme;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(l10n.savingsGoalsTitle,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ElevatedButton.icon(
-            onPressed: widget.onAddGoal,
-            icon: const Icon(Icons.add),
-            label: Text(l10n.newSavingsGoal)),
+      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Expanded(
+          child: Row(
+            children: [
+              Icon(Icons.savings_outlined, color: colors.primary, size: 24),
+              const SizedBox(width: 8),
+              Text(l10n.savingsGoalsTitle,
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: colors.onSurface)),
+            ],
+          ),
+        ),
+        FilledButton.icon(
+          onPressed: widget.onAddGoal,
+          icon: const Icon(Icons.add_rounded, size: 17),
+          label: Text(l10n.newSavingsGoal),
+        ),
       ]),
-      const SizedBox(height: 14),
-      SegmentedButton<bool>(
-        segments: [
-          ButtonSegment(value: false, label: Text(l10n.goalActive)),
-          ButtonSegment(value: true, label: Text(l10n.archived)),
-        ],
-        selected: {showingArchived},
-        onSelectionChanged: (selection) =>
-            setState(() => showingArchived = selection.first),
+      const SizedBox(height: 16),
+      Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: SegmentedButton<bool>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: false, label: Text(l10n.goalActive)),
+            ButtonSegment(value: true, label: Text(l10n.archived)),
+          ],
+          selected: {showingArchived},
+          onSelectionChanged: (selection) =>
+              setState(() => showingArchived = selection.first),
+        ),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       if (goals.isEmpty)
         Padding(
             padding: const EdgeInsets.symmetric(vertical: 40),
