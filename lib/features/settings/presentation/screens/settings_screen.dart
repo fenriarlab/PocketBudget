@@ -218,7 +218,7 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-class _ExpenseCategorySettings extends StatelessWidget {
+class _ExpenseCategorySettings extends StatefulWidget {
   final List<CategoryModel> categories;
   final Future<void> Function(String name) onAdd;
   final Future<void> Function(CategoryModel category)? onDelete;
@@ -230,89 +230,164 @@ class _ExpenseCategorySettings extends StatelessWidget {
   });
 
   @override
+  State<_ExpenseCategorySettings> createState() =>
+      _ExpenseCategorySettingsState();
+}
+
+class _ExpenseCategorySettingsState extends State<_ExpenseCategorySettings> {
+  Future<void> _showCategoryPanel(BuildContext context) {
+    return showGeneralDialog<void>(
+      context: context,
+      barrierLabel: 'Categories',
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.22),
+      transitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: _CategorySidePanel(
+            categories: widget.categories,
+            onAdd: widget.onAdd,
+            onDelete: widget.onDelete,
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final offsetAnimation = Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation);
+        return SlideTransition(position: offsetAnimation, child: child);
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).colorScheme;
     return Card(
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.category_outlined),
-            title: Text(l10n.expenseCategoriesTitle),
-            subtitle: Text(l10n.expenseCategoriesSubtitle),
-            trailing: IconButton(
-              tooltip: l10n.addExpenseCategory,
-              icon: const Icon(Icons.add),
-              onPressed: () => _showAddDialog(context),
-            ),
-          ),
-          if (categories.isEmpty)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              child: Text(
-                l10n.expenseCategoriesSubtitle,
-                style: TextStyle(color: colors.onSurfaceVariant),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: categories.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisExtent: 64,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+      child: ListTile(
+        leading: const Icon(Icons.category_outlined),
+        title: Text(l10n.expenseCategoriesTitle),
+        subtitle: Text(l10n.expenseCategoriesSubtitle),
+        trailing:
+            Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
+        onTap: () => _showCategoryPanel(context),
+      ),
+    );
+  }
+}
+
+class _CategorySidePanel extends StatelessWidget {
+  final List<CategoryModel> categories;
+  final Future<void> Function(String name) onAdd;
+  final Future<void> Function(CategoryModel category)? onDelete;
+
+  const _CategorySidePanel({
+    required this.categories,
+    required this.onAdd,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
+        child: SizedBox(
+          width: MediaQuery.sizeOf(context).width * 0.86,
+          child: Column(
+            children: [
+              ListTile(
+                leading: IconButton(
+                  tooltip: l10n.cancel,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  final color = _settingsCategoryColor(category.colorHex);
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 34,
-                          height: 34,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.16),
-                            shape: BoxShape.circle,
-                          ),
-                          child: _SettingsCategoryGlyph(category: category),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            category.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        if (category.isCustom && onDelete != null)
-                          IconButton(
-                            tooltip: l10n.delete,
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            icon: Icon(Icons.close_rounded,
-                                size: 18, color: colors.onSurfaceVariant),
-                            onPressed: () => onDelete!(category),
-                          ),
-                      ],
-                    ),
-                  );
-                },
+                title: Text(l10n.expenseCategoriesTitle,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(l10n.expenseCategoriesSubtitle),
+                trailing: IconButton(
+                  tooltip: l10n.addExpenseCategory,
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: () => _showAddDialog(context),
+                ),
               ),
-            ),
-        ],
+              const Divider(height: 1),
+              Expanded(
+                child: categories.isEmpty
+                    ? Center(
+                        child: Text(l10n.expenseCategoriesSubtitle,
+                            style: TextStyle(color: colors.onSurfaceVariant)),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: categories.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisExtent: 64,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        itemBuilder: (context, index) {
+                          final category = categories[index];
+                          final color =
+                              _settingsCategoryColor(category.colorHex);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: color.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.16),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: _SettingsCategoryGlyph(
+                                      category: category),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(category.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                                if (category.isCustom && onDelete != null)
+                                  IconButton(
+                                    tooltip: l10n.delete,
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    icon: Icon(Icons.close_rounded,
+                                        size: 18,
+                                        color: colors.onSurfaceVariant),
+                                    onPressed: () async {
+                                      await onDelete!(category);
+                                      if (context.mounted) {
+                                        Navigator.of(context).pop();
+                                      }
+                                    },
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -347,7 +422,10 @@ class _ExpenseCategorySettings extends StatelessWidget {
     );
     await WidgetsBinding.instance.endOfFrame;
     controller.dispose();
-    if (name != null && name.isNotEmpty) await onAdd(name);
+    if (name != null && name.isNotEmpty) {
+      await onAdd(name);
+      if (context.mounted) Navigator.of(context).pop();
+    }
   }
 }
 
