@@ -1534,7 +1534,7 @@ class _TransactionTypeTabs extends StatelessWidget {
   }
 }
 
-class _CategoryGrid extends StatelessWidget {
+class _CategoryGrid extends StatefulWidget {
   final Map<String, CategoryModel> categories;
   final String? selectedCategoryId;
   final int page;
@@ -1556,103 +1556,71 @@ class _CategoryGrid extends StatelessWidget {
   });
 
   @override
+  State<_CategoryGrid> createState() => _CategoryGridState();
+}
+
+class _CategoryGridState extends State<_CategoryGrid> {
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: widget.page);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CategoryGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.page != oldWidget.page &&
+        _pageController.hasClients &&
+        widget.page != _pageController.page?.round()) {
+      _pageController.animateToPage(
+        widget.page,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final builtIn =
-        categories.values.where((category) => !category.isCustom).toList();
-    final custom =
-        categories.values.where((category) => category.isCustom).toList();
-    final pageCount = showCustomPage
+    final builtIn = widget.categories.values
+        .where((category) => !category.isCustom)
+        .toList();
+    final custom = widget.categories.values
+        .where((category) => category.isCustom)
+        .toList();
+    final pageCount = widget.showCustomPage
         ? (custom.isEmpty ? 2 : (custom.length / 10).ceil() + 1)
         : 1;
-    final currentPage = page >= pageCount ? pageCount - 1 : page;
-    final visibleCategories = currentPage == 0 || !showCustomPage
-        ? builtIn.take(10).toList()
-        : custom.skip((currentPage - 1) * 10).take(10).toList();
-    final showAddTile =
-        showCustomPage && currentPage == pageCount - 1 && onAddCategory != null;
+    final currentPage = widget.page >= pageCount ? pageCount - 1 : widget.page;
+    final pages = <List<CategoryModel>>[
+      builtIn.take(10).toList(),
+      ...List.generate(
+        pageCount - 1,
+        (index) => custom.skip(index * 10).take(10).toList(),
+      ),
+    ];
     return Column(
       children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: visibleCategories.length + (showAddTile ? 1 : 0),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 5,
-            mainAxisExtent: 76,
-            crossAxisSpacing: 8,
+        SizedBox(
+          height: 152,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: pages.length,
+            onPageChanged: widget.onPageChanged,
+            itemBuilder: (context, pageIndex) => _buildPage(
+              context,
+              pages[pageIndex],
+              pageIndex == pages.length - 1,
+            ),
           ),
-          itemBuilder: (context, index) {
-            if (index >= visibleCategories.length) {
-              return _AddCategoryTile(onTap: onAddCategory!);
-            }
-            final category = visibleCategories[index];
-            final isSelected = category.id == selectedCategoryId;
-            final color = _categoryColor(category.colorHex);
-            return InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () => onSelected(category),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 38,
-                      height: 38,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? color.withValues(alpha: 0.22)
-                            : color.withValues(alpha: 0.10),
-                        shape: BoxShape.circle,
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: color.withValues(alpha: 0.22),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: _CategoryGlyph(category: category),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      localizedName(category.name),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontSize: 13,
-                            fontWeight:
-                                isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isSelected
-                                ? color
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                          ),
-                    ),
-                    const SizedBox(height: 2),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      width: isSelected ? 5 : 0,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
         ),
         if (pageCount > 1) ...[
           const SizedBox(height: 6),
@@ -1661,7 +1629,7 @@ class _CategoryGrid extends StatelessWidget {
             children: List.generate(
               pageCount,
               (index) => GestureDetector(
-                onTap: () => onPageChanged(index),
+                onTap: () => widget.onPageChanged(index),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
                   margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -1682,6 +1650,95 @@ class _CategoryGrid extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildPage(
+    BuildContext context,
+    List<CategoryModel> visibleCategories,
+    bool isLastPage,
+  ) {
+    final showAddTile =
+        widget.showCustomPage && isLastPage && widget.onAddCategory != null;
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: visibleCategories.length + (showAddTile ? 1 : 0),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5,
+        mainAxisExtent: 76,
+        crossAxisSpacing: 8,
+      ),
+      itemBuilder: (context, index) {
+        if (index >= visibleCategories.length) {
+          return _AddCategoryTile(onTap: widget.onAddCategory!);
+        }
+        final category = visibleCategories[index];
+        final isSelected = category.id == widget.selectedCategoryId;
+        final color = _categoryColor(category.colorHex);
+        return InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => widget.onSelected(category),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? color.withValues(alpha: 0.22)
+                        : color.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.22),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: _CategoryGlyph(category: category),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.localizedName(category.name),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected
+                            ? color
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: isSelected ? 5 : 0,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
