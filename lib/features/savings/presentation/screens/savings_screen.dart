@@ -121,9 +121,6 @@ class SavingsGoalsSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.28),
-        ),
         boxShadow: [
           BoxShadow(
             color: Theme.of(context).brightness == Brightness.dark
@@ -268,7 +265,7 @@ class SavingsGoalsSection extends StatelessWidget {
             value: goal.progressPercentage / 100,
             minHeight: 9,
             color: completed ? AppColors.income : colorScheme.primary,
-            backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.28),
+            backgroundColor: colorScheme.outlineVariant.withValues(alpha: 0.14),
           ),
         ),
         if (!completed && remainingDays > 0) ...[
@@ -297,6 +294,7 @@ class SavingsGoalsSection extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => onHistory(goal),
+                style: _secondarySavingsButtonStyle(colorScheme),
                 icon: const Icon(Icons.history_rounded, size: 16),
                 label: Text(l10n.savingsHistory),
               ),
@@ -305,6 +303,7 @@ class SavingsGoalsSection extends StatelessWidget {
               const SizedBox(width: 8),
               OutlinedButton(
                 onPressed: () => onDeposit(goal, true),
+                style: _secondarySavingsButtonStyle(colorScheme),
                 child: Text(l10n.withdraw),
               ),
               const SizedBox(width: 8),
@@ -391,6 +390,17 @@ class _SectionContent extends StatefulWidget {
 
   @override
   State<_SectionContent> createState() => _SectionContentState();
+}
+
+ButtonStyle _secondarySavingsButtonStyle(ColorScheme colorScheme) {
+  return ButtonStyle(
+    side: WidgetStatePropertyAll(
+      BorderSide(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.52),
+      ),
+    ),
+    foregroundColor: WidgetStatePropertyAll(colorScheme.primary),
+  );
 }
 
 class _SavingsAmount extends StatelessWidget {

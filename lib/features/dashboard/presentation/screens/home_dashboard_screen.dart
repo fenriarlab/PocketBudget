@@ -2032,6 +2032,31 @@ class SavingsDepositSheet extends StatefulWidget {
   State<SavingsDepositSheet> createState() => _SavingsDepositSheetState();
 }
 
+class _SavingsSheetField extends StatelessWidget {
+  final Widget child;
+
+  const _SavingsSheetField({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
@@ -2061,48 +2086,127 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
+    final isEditing = widget.initialLog != null;
+    final title = isEditing
+        ? l10n.editGoalLog(widget.goal.title)
+        : widget.isWithdraw
+            ? l10n.withdrawFromGoal(widget.goal.title)
+            : l10n.depositToGoal(widget.goal.title);
+    final amountLabel =
+        widget.isWithdraw ? l10n.withdrawAmount : l10n.depositAmount;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+          24, 16, 24, MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-              widget.initialLog == null
-                  ? (widget.isWithdraw
-                      ? l10n.withdrawFromGoal(widget.goal.title)
-                      : l10n.depositToGoal(widget.goal.title))
-                  : l10n.editGoalLog(widget.goal.title),
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          TextField(
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.onSurface.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  widget.isWithdraw
+                      ? Icons.south_west_rounded
+                      : Icons.savings_outlined,
+                  color: colors.primary,
+                  size: 23,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 52),
+            child: Text(
+              l10n.savedAmount(
+                  '¥${widget.goal.currentAmount.toStringAsFixed(2)}'),
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 18),
+          _SavingsSheetField(
+            child: TextField(
               controller: _amountController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               decoration: InputDecoration(
-                  labelText: widget.isWithdraw
-                      ? l10n.withdrawAmount
-                      : l10n.depositAmount,
-                  prefixText: '¥ ',
-                  errorText: _amountError,
-                  border: const OutlineInputBorder())),
-          const SizedBox(height: 12),
-          TextField(
-              controller: _noteController,
-              decoration: InputDecoration(
-                  labelText: l10n.noteLabel,
-                  border: const OutlineInputBorder())),
-          if (!widget.isWithdraw)
-            CheckboxListTile(
-              value: _deductFromBudget,
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.countAgainstBudget),
-              subtitle: Text(l10n.countAgainstBudgetHint,
-                  style: TextStyle(fontSize: 12)),
-              onChanged: (value) =>
-                  setState(() => _deductFromBudget = value ?? true),
+                labelText: amountLabel,
+                prefixText: '¥ ',
+                errorText: _amountError,
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
             ),
+          ),
+          const SizedBox(height: 12),
+          _SavingsSheetField(
+            child: TextField(
+              controller: _noteController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: l10n.noteLabel,
+                border: InputBorder.none,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+            ),
+          ),
+          if (!widget.isWithdraw) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest.withValues(alpha: 0.62),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: CheckboxListTile(
+                  value: _deductFromBudget,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.trailing,
+                  title: Text(l10n.countAgainstBudget,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(l10n.countAgainstBudgetHint,
+                      style: TextStyle(
+                          fontSize: 12, color: colors.onSurfaceVariant)),
+                  onChanged: (value) =>
+                      setState(() => _deductFromBudget = value ?? true),
+                ),
+              ),
+            ),
+          ],
           if (_saveError != null) ...[
             const SizedBox(height: 8),
             Align(
@@ -2115,7 +2219,12 @@ class _SavingsDepositSheetState extends State<SavingsDepositSheet> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
               onPressed: _isSaving
                   ? null
                   : () async {
