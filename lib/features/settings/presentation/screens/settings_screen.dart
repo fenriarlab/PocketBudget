@@ -232,6 +232,7 @@ class _ExpenseCategorySettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = Theme.of(context).colorScheme;
     return Card(
       child: Column(
         children: [
@@ -245,18 +246,72 @@ class _ExpenseCategorySettings extends StatelessWidget {
               onPressed: () => _showAddDialog(context),
             ),
           ),
-          ...categories.map((category) => ListTile(
-                leading: Text(category.icon,
-                    style: const TextStyle(fontSize: 20)),
-                title: Text(category.name),
-                trailing: category.isCustom
-                    ? IconButton(
-                        tooltip: l10n.delete,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => onDelete?.call(category),
-                      )
-                    : null,
-              )),
+          if (categories.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: Text(
+                l10n.expenseCategoriesSubtitle,
+                style: TextStyle(color: colors.onSurfaceVariant),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: categories.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisExtent: 64,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  final color = _settingsCategoryColor(category.colorHex);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.16),
+                            shape: BoxShape.circle,
+                          ),
+                          child: _SettingsCategoryGlyph(category: category),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            category.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (category.isCustom && onDelete != null)
+                          IconButton(
+                            tooltip: l10n.delete,
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            icon: Icon(Icons.close_rounded,
+                                size: 18, color: colors.onSurfaceVariant),
+                            onPressed: () => onDelete!(category),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -290,7 +345,43 @@ class _ExpenseCategorySettings extends StatelessWidget {
         );
       },
     );
+    await WidgetsBinding.instance.endOfFrame;
     controller.dispose();
     if (name != null && name.isNotEmpty) await onAdd(name);
   }
+}
+
+class _SettingsCategoryGlyph extends StatelessWidget {
+  final CategoryModel category;
+
+  const _SettingsCategoryGlyph({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = _settingsCategoryIcons[category.id];
+    if (icon != null) {
+      return Icon(icon,
+          size: 19, color: _settingsCategoryColor(category.colorHex));
+    }
+    return Text(category.icon, style: const TextStyle(fontSize: 17));
+  }
+}
+
+const _settingsCategoryIcons = <String, IconData>{
+  'cat_food': Icons.restaurant_outlined,
+  'cat_transport': Icons.directions_car_outlined,
+  'cat_shopping': Icons.shopping_bag_outlined,
+  'cat_daily': Icons.inventory_2_outlined,
+  'cat_entertainment': Icons.sports_esports_outlined,
+  'cat_housing': Icons.home_outlined,
+  'cat_communication': Icons.phone_iphone_outlined,
+  'cat_education': Icons.menu_book_outlined,
+  'cat_medical': Icons.medical_services_outlined,
+  'cat_other': Icons.category_outlined,
+};
+
+Color _settingsCategoryColor(String hex) {
+  final normalized = hex.replaceFirst('#', '');
+  final value = int.tryParse(normalized, radix: 16);
+  return value == null ? const Color(0xFF8791A5) : Color(0xFF000000 | value);
 }
