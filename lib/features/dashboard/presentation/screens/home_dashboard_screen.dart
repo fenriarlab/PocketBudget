@@ -74,6 +74,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   double _totalIncome = 0;
   double _totalExpense = 0;
   List<CategoryModel> _expenseCategories = [];
+  List<CategoryModel> _incomeCategories = [];
 
   String get _currentPeriod => MonthPeriod.fromDate(_selectedMonth).key;
 
@@ -124,7 +125,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     final initialBalance = await _initialBalanceRepository.getInitialBalance();
     final expenseCategories =
         await _categoryRepository.getCategories(type: CategoryType.expense);
+    final incomeCategories =
+        await _categoryRepository.getCategories(type: CategoryType.income);
     _expenseCategories = expenseCategories;
+    _incomeCategories = incomeCategories;
     var totalIncome = 0.0;
     var totalExpense = 0.0;
     for (final transaction in transactions) {
@@ -154,6 +158,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       _totalIncome = totalIncome;
       _totalExpense = totalExpense;
       _expenseCategories = expenseCategories;
+      _incomeCategories = incomeCategories;
       _isLoading = false;
     });
   }
@@ -297,6 +302,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           currentPeriod: _currentPeriod,
           privacyHidden: _privacyHidden,
           currencyCode: widget.currencyCode,
+          categories: [..._expenseCategories, ..._incomeCategories],
           transactions: _transactions,
           selectedMonth: _selectedMonth,
           selectedDate: _selectedDate,

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../categories/data/models/category_model.dart';
 import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../../../transactions/presentation/screens/transactions_screen.dart';
@@ -20,6 +21,7 @@ class DashboardScreen extends StatelessWidget {
   final String currentPeriod;
   final bool privacyHidden;
   final List<TransactionModel>? transactions;
+  final List<CategoryModel> categories;
   final DateTime? selectedMonth;
   final DateTime? selectedDate;
   final double? dailyQuota;
@@ -43,6 +45,7 @@ class DashboardScreen extends StatelessWidget {
     required this.currentPeriod,
     required this.privacyHidden,
     this.transactions,
+    this.categories = const [],
     this.selectedMonth,
     this.selectedDate,
     this.dailyQuota,
@@ -54,10 +57,9 @@ class DashboardScreen extends StatelessWidget {
     this.currencyCode = 'CNY',
   });
 
-  String _amount(double value) =>
-      privacyHidden
-          ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
-          : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
+  String _amount(double value) => privacyHidden
+      ? '${CurrencyCatalog.byCode(currencyCode).symbol} ****'
+      : CurrencyCatalog.byCode(currencyCode).format(value, 'en');
 
   @override
   Widget build(BuildContext context) {
@@ -75,9 +77,9 @@ class DashboardScreen extends StatelessWidget {
         goals.fold<double>(0, (sum, goal) => sum + goal.currentAmount);
     final effectiveTotalIncome = totalIncome == 0 ? monthlyIncome : totalIncome;
     final effectiveTotalExpense =
-      totalExpense == 0 ? monthlyExpense : totalExpense;
+        totalExpense == 0 ? monthlyExpense : totalExpense;
     final totalAssets =
-      initialBalance + effectiveTotalIncome - effectiveTotalExpense;
+        initialBalance + effectiveTotalIncome - effectiveTotalExpense;
     final liquidBalance = totalAssets - totalSavings;
 
     final summary = [
@@ -176,6 +178,7 @@ class DashboardScreen extends StatelessWidget {
         Expanded(
           child: TransactionsScreen(
             currencyCode: currencyCode,
+            categories: categories,
             transactions: transactions!,
             selectedMonth: selectedMonth!,
             selectedDate: selectedDate!,

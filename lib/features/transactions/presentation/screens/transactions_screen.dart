@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/currency/currency_definition.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../categories/data/models/category_model.dart';
 import '../../data/models/transaction_model.dart';
 import '../models/pressure_level.dart';
 
 class TransactionsScreen extends StatelessWidget {
   final List<TransactionModel> transactions;
+  final List<CategoryModel> categories;
   final DateTime selectedMonth;
   final DateTime selectedDate;
   final double dailyQuota;
@@ -24,6 +26,7 @@ class TransactionsScreen extends StatelessWidget {
   const TransactionsScreen({
     super.key,
     required this.transactions,
+    this.categories = const [],
     required this.selectedMonth,
     required this.selectedDate,
     required this.dailyQuota,
@@ -271,17 +274,24 @@ class TransactionsScreen extends StatelessWidget {
   Widget _transactionTile(BuildContext context, TransactionModel transaction,
       {bool compactDate = false}) {
     final expense = transaction.type == TransactionType.expense;
+    final category = _categoryById(transaction.categoryId);
+    final categoryColor = category == null
+        ? Theme.of(context).colorScheme.primary
+        : _transactionCategoryColor(category.colorHex);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
         onLongPress: () => _showTransactionActions(context, transaction),
         child: ListTile(
-          leading: CircleAvatar(
-              child: Text(transaction.categoryIcon.isEmpty
-                  ? (expense
-                      ? AppLocalizations.of(context)!.expenseInitial
-                      : AppLocalizations.of(context)!.incomeInitial)
-                  : transaction.categoryIcon)),
+          leading: _TransactionCategoryAvatar(
+            category: category,
+            fallbackIcon: transaction.categoryIcon.isEmpty
+                ? (expense
+                    ? AppLocalizations.of(context)!.expenseInitial
+                    : AppLocalizations.of(context)!.incomeInitial)
+                : transaction.categoryIcon,
+            color: categoryColor,
+          ),
           title: Text(transaction.categoryName),
           subtitle: Text(transaction.note?.isNotEmpty == true
               ? '${DateFormat.Hm(Localizations.localeOf(context).toLanguageTag()).format(transaction.date)} · ${transaction.note}'
@@ -301,6 +311,13 @@ class TransactionsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  CategoryModel? _categoryById(String id) {
+    for (final category in categories) {
+      if (category.id == id) return category;
+    }
+    return null;
   }
 
   Color _heatColor(BuildContext context, double expense) {
@@ -328,4 +345,55 @@ class TransactionsScreen extends StatelessWidget {
           offset: const Offset(0, 1))
     ];
   }
+}
+
+class _TransactionCategoryAvatar extends StatelessWidget {
+  final CategoryModel? category;
+  final String fallbackIcon;
+  final Color color;
+
+  const _TransactionCategoryAvatar({
+    required this.category,
+    required this.fallbackIcon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final icon =
+        category == null ? null : _transactionCategoryIcons[category!.id];
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        shape: BoxShape.circle,
+      ),
+      child: icon == null
+          ? Text(fallbackIcon, style: const TextStyle(fontSize: 20))
+          : Icon(icon, size: 22, color: color),
+    );
+  }
+}
+
+const _transactionCategoryIcons = <String, IconData>{
+  'cat_food': Icons.restaurant_outlined,
+  'cat_transport': Icons.directions_car_outlined,
+  'cat_shopping': Icons.shopping_bag_outlined,
+  'cat_daily': Icons.inventory_2_outlined,
+  'cat_entertainment': Icons.sports_esports_outlined,
+  'cat_housing': Icons.home_outlined,
+  'cat_communication': Icons.phone_iphone_outlined,
+  'cat_education': Icons.menu_book_outlined,
+  'cat_medical': Icons.medical_services_outlined,
+  'cat_other': Icons.category_outlined,
+  'cat_salary': Icons.account_balance_wallet_outlined,
+  'cat_bonus': Icons.trending_up,
+};
+
+Color _transactionCategoryColor(String hex) {
+  final normalized = hex.replaceFirst('#', '');
+  final value = int.tryParse(normalized, radix: 16);
+  return value == null ? const Color(0xFF8791A5) : Color(0xFF000000 | value);
 }
