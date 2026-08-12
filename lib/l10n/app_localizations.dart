@@ -1357,6 +1357,114 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'继续'**
   String get continueLabel;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的'**
+  String get profileTitle;
+
+  /// No description provided for @profileSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地账本'**
+  String get profileSubtitle;
+
+  /// No description provided for @profileAccountbookLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'账本昵称'**
+  String get profileAccountbookLabel;
+
+  /// No description provided for @profileAccountbookHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'为你的账本取一个昵称'**
+  String get profileAccountbookHint;
+
+  /// No description provided for @profileAccountbookDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'我的本地钱包'**
+  String get profileAccountbookDefault;
+
+  /// No description provided for @profileStatsDays.
+  ///
+  /// In zh, this message translates to:
+  /// **'已记账 {days} 天'**
+  String profileStatsDays(Object days);
+
+  /// No description provided for @profileStatsTransactions.
+  ///
+  /// In zh, this message translates to:
+  /// **'共 {count} 笔记录'**
+  String profileStatsTransactions(Object count);
+
+  /// No description provided for @profileNetAssets.
+  ///
+  /// In zh, this message translates to:
+  /// **'净资产'**
+  String get profileNetAssets;
+
+  /// No description provided for @profileSection_account.
+  ///
+  /// In zh, this message translates to:
+  /// **'账本管理'**
+  String get profileSection_account;
+
+  /// No description provided for @profileSection_data.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据安全'**
+  String get profileSection_data;
+
+  /// No description provided for @profileCategoryManagement.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类管理'**
+  String get profileCategoryManagement;
+
+  /// No description provided for @profileCategoryManagementSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'管理消费类别'**
+  String get profileCategoryManagementSubtitle;
+
+  /// No description provided for @profileGeneralSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'通用设置'**
+  String get profileGeneralSettings;
+
+  /// No description provided for @profileGeneralSettingsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'外观、语言、隐私与安全'**
+  String get profileGeneralSettingsSubtitle;
+
+  /// No description provided for @generalSettingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'通用设置'**
+  String get generalSettingsTitle;
+
+  /// No description provided for @categoryManagementTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类管理'**
+  String get categoryManagementTitle;
+
+  /// No description provided for @addCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增类别'**
+  String get addCategory;
+
+  /// No description provided for @editNickname.
+  ///
+  /// In zh, this message translates to:
+  /// **'修改昵称'**
+  String get editNickname;
 }
 
 class _AppLocalizationsDelegate

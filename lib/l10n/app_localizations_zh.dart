@@ -689,4 +689,62 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get continueLabel => '继续';
+
+  @override
+  String get profileTitle => '我的';
+
+  @override
+  String get profileSubtitle => '本地账本';
+
+  @override
+  String get profileAccountbookLabel => '账本昵称';
+
+  @override
+  String get profileAccountbookHint => '为你的账本取一个昵称';
+
+  @override
+  String get profileAccountbookDefault => '我的本地钱包';
+
+  @override
+  String profileStatsDays(Object days) {
+    return '已记账 $days 天';
+  }
+
+  @override
+  String profileStatsTransactions(Object count) {
+    return '共 $count 笔记录';
+  }
+
+  @override
+  String get profileNetAssets => '净资产';
+
+  @override
+  String get profileSection_account => '账本管理';
+
+  @override
+  String get profileSection_data => '数据安全';
+
+  @override
+  String get profileCategoryManagement => '分类管理';
+
+  @override
+  String get profileCategoryManagementSubtitle => '管理消费类别';
+
+  @override
+  String get profileGeneralSettings => '通用设置';
+
+  @override
+  String get profileGeneralSettingsSubtitle => '外观、语言、隐私与安全';
+
+  @override
+  String get generalSettingsTitle => '通用设置';
+
+  @override
+  String get categoryManagementTitle => '分类管理';
+
+  @override
+  String get addCategory => '新增类别';
+
+  @override
+  String get editNickname => '修改昵称';
 }

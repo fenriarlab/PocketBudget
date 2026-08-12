@@ -714,4 +714,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get continueLabel => 'Continue';
+
+  @override
+  String get profileTitle => 'Me';
+
+  @override
+  String get profileSubtitle => 'Local account';
+
+  @override
+  String get profileAccountbookLabel => 'Account nickname';
+
+  @override
+  String get profileAccountbookHint => 'Give your account a nickname';
+
+  @override
+  String get profileAccountbookDefault => 'My Local Wallet';
+
+  @override
+  String profileStatsDays(Object days) {
+    return '$days days tracked';
+  }
+
+  @override
+  String profileStatsTransactions(Object count) {
+    return '$count records total';
+  }
+
+  @override
+  String get profileNetAssets => 'Net assets';
+
+  @override
+  String get profileSection_account => 'Account';
+
+  @override
+  String get profileSection_data => 'Data safety';
+
+  @override
+  String get profileCategoryManagement => 'Category management';
+
+  @override
+  String get profileCategoryManagementSubtitle => 'Manage expense categories';
+
+  @override
+  String get profileGeneralSettings => 'General settings';
+
+  @override
+  String get profileGeneralSettingsSubtitle =>
+      'Appearance, language, privacy & security';
+
+  @override
+  String get generalSettingsTitle => 'General settings';
+
+  @override
+  String get categoryManagementTitle => 'Categories';
+
+  @override
+  String get addCategory => 'Add category';
+
+  @override
+  String get editNickname => 'Edit nickname';
 }

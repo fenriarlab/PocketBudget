@@ -67,7 +67,7 @@ void main() {
       locale: const Locale('zh', 'CN'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: SettingsScreen(
+      home: GeneralSettingsScreen(
         themeMode: ThemeMode.light,
         onThemeModeChanged: (_) {},
         languagePreference: 'system',

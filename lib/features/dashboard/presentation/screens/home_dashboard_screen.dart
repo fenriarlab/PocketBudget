@@ -19,7 +19,7 @@ import '../../../savings/data/models/savings_goal_model.dart';
 import '../../../savings/data/models/savings_log_model.dart';
 import '../../../savings/data/savings_repository.dart';
 import '../../../plan/presentation/screens/plan_screen.dart';
-import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../initial_balance/data/initial_balance_repository.dart';
 import '../../../transactions/data/models/transaction_model.dart';
 import '../../../transactions/data/transaction_repository.dart';
@@ -263,17 +263,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           currencyCode: widget.currencyCode,
         );
       case 3:
-        return SettingsScreen(
-          themeMode: widget.themeMode,
-          onThemeModeChanged: widget.onThemeModeChanged,
-          languagePreference: widget.languagePreference,
-          onLanguageChanged: widget.onLanguageChanged,
-          currencyCode: widget.currencyCode,
-          onResetData: _confirmAndResetData,
-          onExportReadableBackup: _showExportReadableBackup,
-          onExportEncryptedBackup: _showExportEncryptedBackup,
-          onRestoreBackup: _showRestoreBackup,
+        return ProfileScreen(
+          totalIncome: _totalIncome,
+          totalExpense: _totalExpense,
           initialBalance: _initialBalance,
+          transactionCount: _transactions.length,
+          privacyHidden: _privacyHidden,
+          currencyCode: widget.currencyCode,
           onEditInitialBalance: _showInitialBalanceDialog,
           expenseCategories: _expenseCategories,
           onAddExpenseCategory: (name) async {
@@ -290,10 +286,18 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
             }
             await _loadData();
           },
+          onExportReadableBackup: _showExportReadableBackup,
+          onExportEncryptedBackup: _showExportEncryptedBackup,
+          onRestoreBackup: _showRestoreBackup,
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
+          languagePreference: widget.languagePreference,
+          onLanguageChanged: widget.onLanguageChanged,
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
           biometricLockEnabled: widget.biometricLockEnabled,
           onBiometricLockChanged: widget.onBiometricLockChanged,
+          onResetData: _confirmAndResetData,
         );
       default:
         return DashboardScreen(
