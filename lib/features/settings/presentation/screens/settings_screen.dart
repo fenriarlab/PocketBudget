@@ -5,7 +5,7 @@ import '../../../../l10n/app_localizations.dart';
 
 /// 通用设置页面 — 仅包含低频的环境配置、安全隐私及高危操作
 /// 由"我的"页面右上角齿轮按钮导航进入
-class GeneralSettingsScreen extends StatelessWidget {
+class GeneralSettingsScreen extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final String languagePreference;
@@ -30,6 +30,27 @@ class GeneralSettingsScreen extends StatelessWidget {
     this.currencyCode = 'CNY',
     this.onResetData,
   });
+
+  @override
+  State<GeneralSettingsScreen> createState() => _GeneralSettingsScreenState();
+}
+
+class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
+  late bool _biometricLockEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _biometricLockEnabled = widget.biometricLockEnabled;
+  }
+
+  @override
+  void didUpdateWidget(covariant GeneralSettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.biometricLockEnabled != widget.biometricLockEnabled) {
+      _biometricLockEnabled = widget.biometricLockEnabled;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +83,9 @@ class GeneralSettingsScreen extends StatelessWidget {
                           icon: const Icon(Icons.dark_mode_outlined),
                           label: Text(l10n.darkTheme)),
                     ],
-                    selected: {themeMode},
+                    selected: {widget.themeMode},
                     onSelectionChanged: (selection) =>
-                        onThemeModeChanged(selection.first),
+                        widget.onThemeModeChanged(selection.first),
                   ),
                 ),
               ],
@@ -77,10 +98,10 @@ class GeneralSettingsScreen extends StatelessWidget {
               title: Text(l10n.languageTitle),
               subtitle: Text(l10n.languageSubtitle),
               trailing: DropdownButton<String>(
-                value: languagePreference,
+                value: widget.languagePreference,
                 underline: const SizedBox.shrink(),
                 onChanged: (value) {
-                  if (value != null) onLanguageChanged(value);
+                  if (value != null) widget.onLanguageChanged(value);
                 },
                 items: [
                   DropdownMenuItem(
@@ -102,24 +123,31 @@ class GeneralSettingsScreen extends StatelessWidget {
               secondary: const Icon(Icons.visibility_off_outlined),
               title: Text(l10n.privacyDefaultHidden),
               subtitle: Text(l10n.privacyDefaultHiddenSubtitle),
-              value: privacyDefaultHidden,
-              onChanged: onPrivacyDefaultChanged,
+              value: widget.privacyDefaultHidden,
+              onChanged: widget.onPrivacyDefaultChanged,
             ),
           ),
-          if (onBiometricLockChanged != null) ...[
+          if (widget.onBiometricLockChanged != null) ...[
             const SizedBox(height: 12),
             Card(
               child: SwitchListTile(
                 secondary: const Icon(Icons.fingerprint_rounded),
                 title: Text(l10n.appLockTitle),
                 subtitle: Text(l10n.appLockSubtitle),
-                value: biometricLockEnabled,
+                value: _biometricLockEnabled,
                 onChanged: (enabled) async {
-                  final changed = await onBiometricLockChanged!(enabled);
-                  if (!changed && context.mounted && enabled) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.appLockEnableFailed)),
-                    );
+                  final changed =
+                      await widget.onBiometricLockChanged!(enabled);
+                  if (mounted) {
+                    if (changed) {
+                      setState(() {
+                        _biometricLockEnabled = enabled;
+                      });
+                    } else if (enabled) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.appLockEnableFailed)),
+                      );
+                    }
                   }
                 },
               ),
@@ -135,7 +163,7 @@ class GeneralSettingsScreen extends StatelessWidget {
               title: Text(l10n.currencyTitle),
               subtitle: Text(l10n.currencyLockedSubtitle),
               trailing: Text(
-                '${CurrencyCatalog.byCode(currencyCode).nameFor(Localizations.localeOf(context).languageCode)} ($currencyCode)',
+                '${CurrencyCatalog.byCode(widget.currencyCode).nameFor(Localizations.localeOf(context).languageCode)} (${widget.currencyCode})',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -152,7 +180,7 @@ class GeneralSettingsScreen extends StatelessWidget {
           ),
 
           // ─── 高危操作区 ───────────────────────────────────────────
-          if (onResetData != null) ...[
+          if (widget.onResetData != null) ...[
             const SizedBox(height: 20),
             _SectionHeader(l10n.resetFinancialData,
                 color: Theme.of(context).colorScheme.error),
@@ -163,7 +191,7 @@ class GeneralSettingsScreen extends StatelessWidget {
                 subtitle: Text(l10n.resetFinancialDataSubtitle),
                 textColor: Theme.of(context).colorScheme.error,
                 iconColor: Theme.of(context).colorScheme.error,
-                onTap: onResetData,
+                onTap: widget.onResetData,
               ),
             ),
           ],

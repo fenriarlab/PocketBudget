@@ -78,10 +78,16 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
     final l10n = AppLocalizations.of(context)!;
     _authenticationInProgress = true;
     try {
-      if (!await _biometricAuthService.isAvailable()) return false;
+      final available = await _biometricAuthService.isAvailable();
+      debugPrint('[PocketBudget] _setBiometricLockEnabled($enabled), isAvailable: $available');
+      if (!available) {
+        debugPrint('[PocketBudget] Biometrics not available on this device/emulator');
+        return false;
+      }
       final authenticated = await _biometricAuthService.authenticate(
         enabled ? l10n.appLockEnableReason : l10n.appLockDisableReason,
       );
+      debugPrint('[PocketBudget] authenticate result: $authenticated');
       if (!authenticated) return false;
       final preferences = await SharedPreferences.getInstance();
       await preferences.setBool('biometric_lock_enabled', enabled);
@@ -92,6 +98,9 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
         });
       }
       return true;
+    } catch (e, stack) {
+      debugPrint('[PocketBudget] _setBiometricLockEnabled error: $e\n$stack');
+      return false;
     } finally {
       _authenticationInProgress = false;
     }

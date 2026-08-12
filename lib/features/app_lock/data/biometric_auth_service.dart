@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
 class BiometricAuthService {
@@ -5,22 +6,33 @@ class BiometricAuthService {
 
   Future<bool> isAvailable() async {
     try {
-      if (!await _localAuthentication.isDeviceSupported()) return false;
-      if (!await _localAuthentication.canCheckBiometrics) return false;
-      return (await _localAuthentication.getAvailableBiometrics()).isNotEmpty;
-    } on LocalAuthException {
+      final isSupported = await _localAuthentication.isDeviceSupported();
+      final canCheck = await _localAuthentication.canCheckBiometrics;
+      final available = await _localAuthentication.getAvailableBiometrics();
+      debugPrint(
+          '[BiometricAuthService] isSupported: $isSupported, canCheck: $canCheck, available: $available');
+      if (!isSupported && !canCheck) return false;
+      return true;
+    } catch (e, stack) {
+      debugPrint('[BiometricAuthService] isAvailable error: $e\n$stack');
       return false;
     }
   }
 
   Future<bool> authenticate(String reason) async {
     try {
-      return await _localAuthentication.authenticate(
+      final result = await _localAuthentication.authenticate(
         localizedReason: reason,
-        biometricOnly: true,
-        persistAcrossBackgrounding: true,
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          useErrorDialogs: true,
+          stickyAuth: true,
+        ),
       );
-    } on LocalAuthException {
+      debugPrint('[BiometricAuthService] authenticate result: $result');
+      return result;
+    } catch (e, stack) {
+      debugPrint('[BiometricAuthService] authenticate error: $e\n$stack');
       return false;
     }
   }
