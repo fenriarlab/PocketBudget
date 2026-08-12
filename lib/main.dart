@@ -75,7 +75,10 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
 
   Future<bool> _setBiometricLockEnabled(bool enabled) async {
     if (_authenticationInProgress) return false;
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    final reason = enabled
+        ? (l10n?.appLockEnableReason ?? '验证身份以开启 PocketBudget 应用锁')
+        : (l10n?.appLockDisableReason ?? '验证身份以关闭 PocketBudget 应用锁');
     _authenticationInProgress = true;
     try {
       final available = await _biometricAuthService.isAvailable();
@@ -84,9 +87,7 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
         debugPrint('[PocketBudget] Biometrics not available on this device/emulator');
         return false;
       }
-      final authenticated = await _biometricAuthService.authenticate(
-        enabled ? l10n.appLockEnableReason : l10n.appLockDisableReason,
-      );
+      final authenticated = await _biometricAuthService.authenticate(reason);
       debugPrint('[PocketBudget] authenticate result: $authenticated');
       if (!authenticated) return false;
       final preferences = await SharedPreferences.getInstance();
@@ -110,9 +111,10 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
     if (_authenticationInProgress) return false;
     _authenticationInProgress = true;
     try {
-      final l10n = AppLocalizations.of(context)!;
+      final l10n = AppLocalizations.of(context);
+      final reason = l10n?.appLockUnlockReason ?? '验证身份以打开 PocketBudget';
       final authenticated =
-          await _biometricAuthService.authenticate(l10n.appLockUnlockReason);
+          await _biometricAuthService.authenticate(reason);
       if (authenticated && mounted) setState(() => _isLocked = false);
       return authenticated;
     } finally {

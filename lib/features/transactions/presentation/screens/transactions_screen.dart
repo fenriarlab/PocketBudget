@@ -194,19 +194,26 @@ class TransactionsScreen extends StatelessWidget {
               style: TextStyle(
                   fontSize: 11,
                   color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          const SizedBox(width: 4),
           ...PressureLevelDetails.values.map((level) => Expanded(
-                  child: Row(children: [
-                Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                        color: level.color, shape: BoxShape.circle)),
-                const SizedBox(width: 3),
-                Text(level.localizedLabel(l10n),
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              ]))),
+                  child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                            color: level.color, shape: BoxShape.circle)),
+                    const SizedBox(width: 3),
+                    Text(level.localizedLabel(l10n),
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ))),
         ],
       ),
     );
