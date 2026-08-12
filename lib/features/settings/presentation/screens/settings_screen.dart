@@ -11,6 +11,8 @@ class SettingsScreen extends StatelessWidget {
   final ValueChanged<String> onLanguageChanged;
   final bool privacyDefaultHidden;
   final ValueChanged<bool> onPrivacyDefaultChanged;
+  final bool biometricLockEnabled;
+  final Future<bool> Function(bool enabled)? onBiometricLockChanged;
   final String currencyCode;
   final double initialBalance;
   final VoidCallback? onEditInitialBalance;
@@ -30,6 +32,8 @@ class SettingsScreen extends StatelessWidget {
     required this.onLanguageChanged,
     required this.privacyDefaultHidden,
     required this.onPrivacyDefaultChanged,
+    this.biometricLockEnabled = false,
+    this.onBiometricLockChanged,
     this.currencyCode = 'CNY',
     this.initialBalance = 0,
     this.onEditInitialBalance,
@@ -180,6 +184,25 @@ class SettingsScreen extends StatelessWidget {
             onChanged: onPrivacyDefaultChanged,
           ),
         ),
+        if (onBiometricLockChanged != null) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile(
+              secondary: const Icon(Icons.fingerprint_rounded),
+              title: Text(l10n.appLockTitle),
+              subtitle: Text(l10n.appLockSubtitle),
+              value: biometricLockEnabled,
+              onChanged: (enabled) async {
+                final changed = await onBiometricLockChanged!(enabled);
+                if (!changed && context.mounted && enabled) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.appLockEnableFailed)),
+                  );
+                }
+              },
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         Card(
           child: ListTile(

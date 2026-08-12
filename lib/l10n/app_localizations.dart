@@ -284,6 +284,54 @@ abstract class AppLocalizations {
   /// **'打开应用时先隐藏所有金额，适合在公共场合使用'**
   String get privacyDefaultHiddenSubtitle;
 
+  /// No description provided for @appLockTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用锁'**
+  String get appLockTitle;
+
+  /// No description provided for @appLockSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用指纹或面容识别保护应用'**
+  String get appLockSubtitle;
+
+  /// No description provided for @appLockUnlock.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证并解锁'**
+  String get appLockUnlock;
+
+  /// No description provided for @appLockFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证未成功，请重试'**
+  String get appLockFailed;
+
+  /// No description provided for @appLockEnableFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备不支持可用的生物识别，应用锁未开启'**
+  String get appLockEnableFailed;
+
+  /// No description provided for @appLockEnableReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证身份以开启 PocketBudget 应用锁'**
+  String get appLockEnableReason;
+
+  /// No description provided for @appLockDisableReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证身份以关闭 PocketBudget 应用锁'**
+  String get appLockDisableReason;
+
+  /// No description provided for @appLockUnlockReason.
+  ///
+  /// In zh, this message translates to:
+  /// **'验证身份以打开 PocketBudget'**
+  String get appLockUnlockReason;
+
   /// No description provided for @localStorageTitle.
   ///
   /// In zh, this message translates to:

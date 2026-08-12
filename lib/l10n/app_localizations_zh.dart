@@ -102,6 +102,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get privacyDefaultHiddenSubtitle => '打开应用时先隐藏所有金额，适合在公共场合使用';
 
   @override
+  String get appLockTitle => '应用锁';
+
+  @override
+  String get appLockSubtitle => '使用指纹或面容识别保护应用';
+
+  @override
+  String get appLockUnlock => '验证并解锁';
+
+  @override
+  String get appLockFailed => '验证未成功，请重试';
+
+  @override
+  String get appLockEnableFailed => '设备不支持可用的生物识别，应用锁未开启';
+
+  @override
+  String get appLockEnableReason => '验证身份以开启 PocketBudget 应用锁';
+
+  @override
+  String get appLockDisableReason => '验证身份以关闭 PocketBudget 应用锁';
+
+  @override
+  String get appLockUnlockReason => '验证身份以打开 PocketBudget';
+
+  @override
   String get localStorageTitle => '本地存储';
 
   @override

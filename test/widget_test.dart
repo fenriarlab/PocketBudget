@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pocket_budget/features/app_lock/presentation/screens/app_lock_screen.dart';
 import 'package:pocket_budget/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:pocket_budget/features/settings/presentation/screens/settings_screen.dart';
 import 'package:pocket_budget/l10n/app_localizations.dart';
 
 void main() {
+  testWidgets('app lock retries after biometric authentication fails',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      locale: const Locale('zh', 'CN'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: AppLockScreen(onAuthenticate: () async => false),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('应用锁'), findsOneWidget);
+    expect(find.text('验证未成功，请重试'), findsOneWidget);
+    expect(find.text('验证并解锁'), findsOneWidget);
+  });
+
   testWidgets('dashboard shows remaining budget and daily quota',
       (tester) async {
     await tester.pumpWidget(MaterialApp(

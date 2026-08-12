@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/constants/app_colors.dart';
 import 'core/currency/currency_definition.dart';
 import 'core/database/database_helper.dart';
+import 'features/app_lock/data/biometric_auth_service.dart';
+import 'features/app_lock/presentation/screens/app_lock_screen.dart';
 import 'features/dashboard/presentation/screens/home_dashboard_screen.dart';
 import 'features/onboarding/presentation/screens/currency_setup_screen.dart';
 import 'l10n/app_localizations.dart';
@@ -19,18 +21,94 @@ class PocketBudgetApp extends StatefulWidget {
   State<PocketBudgetApp> createState() => _PocketBudgetAppState();
 }
 
-class _PocketBudgetAppState extends State<PocketBudgetApp> {
+class _PocketBudgetAppState extends State<PocketBudgetApp>
+    with WidgetsBindingObserver {
+  final _biometricAuthService = BiometricAuthService();
+
   ThemeMode _themeMode = ThemeMode.dark;
   String _languagePreference = 'system';
   String? _currencyCode;
   bool _currencyLoading = true;
+  bool _biometricLockLoading = true;
+  bool _biometricLockEnabled = false;
+  bool _isLocked = false;
+  bool _authenticationInProgress = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadThemeMode();
     _loadLanguagePreference();
     _loadCurrency();
+    _loadBiometricLock();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if ((state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.paused ||
+            state == AppLifecycleState.detached) &&
+        _biometricLockEnabled &&
+        !_authenticationInProgress &&
+        mounted) {
+      setState(() => _isLocked = true);
+    }
+  }
+
+  Future<void> _loadBiometricLock() async {
+    final preferences = await SharedPreferences.getInstance();
+    final enabled = preferences.getBool('biometric_lock_enabled') ?? false;
+    if (!mounted) return;
+    setState(() {
+      _biometricLockEnabled = enabled;
+      _isLocked = enabled;
+      _biometricLockLoading = false;
+    });
+  }
+
+  Future<bool> _setBiometricLockEnabled(bool enabled) async {
+    if (_authenticationInProgress) return false;
+    final l10n = AppLocalizations.of(context)!;
+    _authenticationInProgress = true;
+    try {
+      if (!await _biometricAuthService.isAvailable()) return false;
+      final authenticated = await _biometricAuthService.authenticate(
+        enabled ? l10n.appLockEnableReason : l10n.appLockDisableReason,
+      );
+      if (!authenticated) return false;
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool('biometric_lock_enabled', enabled);
+      if (mounted) {
+        setState(() {
+          _biometricLockEnabled = enabled;
+          _isLocked = false;
+        });
+      }
+      return true;
+    } finally {
+      _authenticationInProgress = false;
+    }
+  }
+
+  Future<bool> _authenticateApp() async {
+    if (_authenticationInProgress) return false;
+    _authenticationInProgress = true;
+    try {
+      final l10n = AppLocalizations.of(context)!;
+      final authenticated =
+          await _biometricAuthService.authenticate(l10n.appLockUnlockReason);
+      if (authenticated && mounted) setState(() => _isLocked = false);
+      return authenticated;
+    } finally {
+      _authenticationInProgress = false;
+    }
   }
 
   Future<void> _loadThemeMode() async {
@@ -105,7 +183,7 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currencyLoading) {
+    if (_currencyLoading || _biometricLockLoading) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -238,14 +316,18 @@ class _PocketBudgetAppState extends State<PocketBudgetApp> {
       ),
       home: _currencyCode == null
           ? CurrencySetupScreen(onConfirmed: _setCurrency)
-          : HomeDashboardScreen(
-              themeMode: _themeMode,
-              onThemeModeChanged: _setThemeMode,
-              languagePreference: _languagePreference,
-              onLanguageChanged: _setLanguagePreference,
-              currencyCode: _currencyCode!,
-              onCurrencyReset: _resetCurrency,
-            ),
+          : _biometricLockEnabled && _isLocked
+              ? AppLockScreen(onAuthenticate: _authenticateApp)
+              : HomeDashboardScreen(
+                  themeMode: _themeMode,
+                  onThemeModeChanged: _setThemeMode,
+                  languagePreference: _languagePreference,
+                  onLanguageChanged: _setLanguagePreference,
+                  currencyCode: _currencyCode!,
+                  onCurrencyReset: _resetCurrency,
+                  biometricLockEnabled: _biometricLockEnabled,
+                  onBiometricLockChanged: _setBiometricLockEnabled,
+                ),
     );
   }
 }

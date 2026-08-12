@@ -104,6 +104,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Hide all amounts when opening the app in public places';
 
   @override
+  String get appLockTitle => 'App lock';
+
+  @override
+  String get appLockSubtitle =>
+      'Protect the app with fingerprint or face recognition';
+
+  @override
+  String get appLockUnlock => 'Unlock';
+
+  @override
+  String get appLockFailed => 'Authentication was not successful. Try again.';
+
+  @override
+  String get appLockEnableFailed =>
+      'No usable biometric authentication is available on this device';
+
+  @override
+  String get appLockEnableReason =>
+      'Authenticate to enable the PocketBudget app lock';
+
+  @override
+  String get appLockDisableReason =>
+      'Authenticate to disable the PocketBudget app lock';
+
+  @override
+  String get appLockUnlockReason => 'Authenticate to open PocketBudget';
+
+  @override
   String get localStorageTitle => 'Local storage';
 
   @override

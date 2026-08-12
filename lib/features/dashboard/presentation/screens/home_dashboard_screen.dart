@@ -32,6 +32,8 @@ class HomeDashboardScreen extends StatefulWidget {
   final ValueChanged<String> onLanguageChanged;
   final String currencyCode;
   final Future<void> Function() onCurrencyReset;
+  final bool biometricLockEnabled;
+  final Future<bool> Function(bool enabled) onBiometricLockChanged;
 
   const HomeDashboardScreen(
       {super.key,
@@ -40,7 +42,9 @@ class HomeDashboardScreen extends StatefulWidget {
       required this.languagePreference,
       required this.onLanguageChanged,
       required this.currencyCode,
-      required this.onCurrencyReset});
+      required this.onCurrencyReset,
+      this.biometricLockEnabled = false,
+      required this.onBiometricLockChanged});
 
   @override
   State<HomeDashboardScreen> createState() => _HomeDashboardScreenState();
@@ -288,6 +292,8 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           },
           privacyDefaultHidden: _privacyDefaultHidden,
           onPrivacyDefaultChanged: _setPrivacyDefaultHidden,
+          biometricLockEnabled: widget.biometricLockEnabled,
+          onBiometricLockChanged: widget.onBiometricLockChanged,
         );
       default:
         return DashboardScreen(
