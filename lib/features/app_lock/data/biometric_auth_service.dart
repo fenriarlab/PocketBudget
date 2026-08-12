@@ -23,11 +23,8 @@ class BiometricAuthService {
     try {
       final result = await _localAuthentication.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          useErrorDialogs: true,
-          stickyAuth: true,
-        ),
+        biometricOnly: false,
+        persistAcrossBackgrounding: true,
       );
       debugPrint('[BiometricAuthService] authenticate result: $result');
       return result;
