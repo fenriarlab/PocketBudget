@@ -773,4 +773,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editNickname => 'Edit nickname';
+
+  @override
+  String get categoryAggregation => 'Category Statistics';
+
+  @override
+  String get categoryAggregationHint =>
+      'Select a category below to view summary and transactions';
+
+  @override
+  String get categoryNoRecords => 'No transactions for this category';
+
+  @override
+  String categoryDetailTitle(Object name) {
+    return '$name Transactions';
+  }
+
+  @override
+  String get netAmount => 'Net Amount';
+
+  @override
+  String get timeRangeAll => 'All';
+
+  @override
+  String get timeRangeThisYear => 'This Year';
+
+  @override
+  String get timeRangeThisMonth => 'This Month';
+
+  @override
+  String get timeRangeCustom => 'Custom';
+
+  @override
+  String viewAllRecords(Object count) {
+    return 'View all $count records';
+  }
 }

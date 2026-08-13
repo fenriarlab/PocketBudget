@@ -259,8 +259,15 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       case 2:
         return AnalysisScreen(
           transactions: _transactions,
+          allTransactions: _transactions,
+          categories: [..._expenseCategories, ..._incomeCategories],
           privacyHidden: _privacyHidden,
           currencyCode: widget.currencyCode,
+          onDelete: (tx) async {
+            await _transactionRepository.deleteTransaction(tx.id);
+            await _loadData();
+          },
+          onEdit: _showEditTransactionSheet,
         );
       case 3:
         return ProfileScreen(

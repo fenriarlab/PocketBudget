@@ -1465,6 +1465,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'修改昵称'**
   String get editNickname;
+
+  /// No description provided for @categoryAggregation.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类统计'**
+  String get categoryAggregation;
+
+  /// No description provided for @categoryAggregationHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择下方任意分类，查看累计统计与明细'**
+  String get categoryAggregationHint;
+
+  /// No description provided for @categoryNoRecords.
+  ///
+  /// In zh, this message translates to:
+  /// **'该分类下暂无记录'**
+  String get categoryNoRecords;
+
+  /// No description provided for @categoryDetailTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name} 的交易明细'**
+  String categoryDetailTitle(Object name);
+
+  /// No description provided for @netAmount.
+  ///
+  /// In zh, this message translates to:
+  /// **'净额'**
+  String get netAmount;
+
+  /// No description provided for @timeRangeAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get timeRangeAll;
+
+  /// No description provided for @timeRangeThisYear.
+  ///
+  /// In zh, this message translates to:
+  /// **'今年'**
+  String get timeRangeThisYear;
+
+  /// No description provided for @timeRangeThisMonth.
+  ///
+  /// In zh, this message translates to:
+  /// **'本月'**
+  String get timeRangeThisMonth;
+
+  /// No description provided for @timeRangeCustom.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义段'**
+  String get timeRangeCustom;
+
+  /// No description provided for @viewAllRecords.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部 {count} 笔明细'**
+  String viewAllRecords(Object count);
 }
 
 class _AppLocalizationsDelegate

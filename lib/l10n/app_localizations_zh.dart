@@ -747,4 +747,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editNickname => '修改昵称';
+
+  @override
+  String get categoryAggregation => '分类统计';
+
+  @override
+  String get categoryAggregationHint => '选择下方任意分类，查看累计统计与明细';
+
+  @override
+  String get categoryNoRecords => '该分类下暂无记录';
+
+  @override
+  String categoryDetailTitle(Object name) {
+    return '$name 的交易明细';
+  }
+
+  @override
+  String get netAmount => '净额';
+
+  @override
+  String get timeRangeAll => '全部';
+
+  @override
+  String get timeRangeThisYear => '今年';
+
+  @override
+  String get timeRangeThisMonth => '本月';
+
+  @override
+  String get timeRangeCustom => '自定义段';
+
+  @override
+  String viewAllRecords(Object count) {
+    return '查看全部 $count 笔明细';
+  }
 }
