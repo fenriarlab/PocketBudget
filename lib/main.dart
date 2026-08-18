@@ -6,6 +6,7 @@ import 'core/database/database_helper.dart';
 import 'features/app_lock/data/biometric_auth_service.dart';
 import 'features/app_lock/presentation/screens/app_lock_screen.dart';
 import 'features/dashboard/presentation/screens/home_dashboard_screen.dart';
+import 'features/initial_balance/data/initial_balance_repository.dart';
 import 'features/onboarding/presentation/screens/currency_setup_screen.dart';
 import 'l10n/app_localizations.dart';
 
@@ -167,6 +168,18 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
     });
   }
 
+  Future<void> _completeOnboarding(
+      String code, double initialBalance) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString('currency_code', code);
+    if (initialBalance > 0) {
+      await InitialBalanceRepository().setInitialBalance(initialBalance);
+    }
+    if (mounted) {
+      setState(() => _currencyCode = CurrencyCatalog.byCode(code).code);
+    }
+  }
+
   Future<void> _setCurrency(String code) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString('currency_code', code);
@@ -326,7 +339,11 @@ class _PocketBudgetAppState extends State<PocketBudgetApp>
         ),
       ),
       home: _currencyCode == null
-          ? CurrencySetupScreen(onConfirmed: _setCurrency)
+          ? CurrencySetupScreen(
+              languagePreference: _languagePreference,
+              onLanguageChanged: _setLanguagePreference,
+              onConfirmed: _completeOnboarding,
+            )
           : _biometricLockEnabled && _isLocked
               ? AppLockScreen(onAuthenticate: _authenticateApp)
               : HomeDashboardScreen(

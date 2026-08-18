@@ -23,8 +23,9 @@ class ProfileScreen extends StatefulWidget {
 
   // 分类数据与操作
   final List<CategoryModel> expenseCategories;
-  final Future<void> Function(String name)? onAddExpenseCategory;
-  final Future<void> Function(CategoryModel category)? onDeleteExpenseCategory;
+  final List<CategoryModel> incomeCategories;
+  final Future<void> Function(String name, CategoryType type)? onAddCategory;
+  final Future<void> Function(CategoryModel category)? onDeleteCategory;
 
   // 备份与恢复操作
   final VoidCallback? onExportReadableBackup;
@@ -52,8 +53,9 @@ class ProfileScreen extends StatefulWidget {
     required this.currencyCode,
     this.onEditInitialBalance,
     required this.expenseCategories,
-    this.onAddExpenseCategory,
-    this.onDeleteExpenseCategory,
+    this.incomeCategories = const [],
+    this.onAddCategory,
+    this.onDeleteCategory,
     this.onExportReadableBackup,
     this.onExportEncryptedBackup,
     this.onRestoreBackup,
@@ -188,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 10),
 
               // 分类管理
-              if (widget.onAddExpenseCategory != null)
+              if (widget.onAddCategory != null)
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.category_outlined),
@@ -205,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            '${widget.expenseCategories.length}',
+                            '${widget.expenseCategories.length + widget.incomeCategories.length}',
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -307,9 +309,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CategoryManagementScreen(
-          categories: widget.expenseCategories,
-          onAdd: widget.onAddExpenseCategory!,
-          onDelete: widget.onDeleteExpenseCategory,
+          expenseCategories: widget.expenseCategories,
+          incomeCategories: widget.incomeCategories,
+          onAdd: widget.onAddCategory!,
+          onDelete: widget.onDeleteCategory,
         ),
       ),
     );

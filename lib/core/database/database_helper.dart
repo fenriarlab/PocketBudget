@@ -365,20 +365,70 @@ class DatabaseHelper {
         'id': 'cat_salary',
         'name': '工资收入',
         'icon_name': 'account_balance_wallet',
-        'color_hex': '#55E6C1',
+        'color_hex': '#55B98A',
         'type': 'INCOME'
       },
       {
         'id': 'cat_bonus',
-        'name': '理财/奖金',
+        'name': '奖金津贴',
+        'icon_name': 'card_giftcard',
+        'color_hex': '#58A99A',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_part_time',
+        'name': '兼职副业',
+        'icon_name': 'work',
+        'color_hex': '#4CAF50',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_investment',
+        'name': '投资理财',
         'icon_name': 'trending_up',
-        'color_hex': '#00CEC9',
+        'color_hex': '#26A69A',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_business',
+        'name': '经营所得',
+        'icon_name': 'storefront',
+        'color_hex': '#00897B',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_gift_income',
+        'name': '礼金红包',
+        'icon_name': 'redeem',
+        'color_hex': '#E91E63',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_secondhand',
+        'name': '闲置变现',
+        'icon_name': 'swap_horizontal_circle',
+        'color_hex': '#8BC34A',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_reimbursement',
+        'name': '报销返还',
+        'icon_name': 'receipt_long',
+        'color_hex': '#00ACC1',
+        'type': 'INCOME'
+      },
+      {
+        'id': 'cat_other_income',
+        'name': '其他收入',
+        'icon_name': 'monetization_on',
+        'color_hex': '#8791A5',
         'type': 'INCOME'
       },
     ];
 
     for (var cat in defaults) {
-      await db.insert('categories', cat);
+      await db.insert('categories', cat,
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -427,6 +477,62 @@ class DatabaseHelper {
         'icon_name': 'category',
         'color_hex': '#8791A5',
         'type': 'EXPENSE',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_part_time',
+        'name': '兼职副业',
+        'icon_name': 'work',
+        'color_hex': '#4CAF50',
+        'type': 'INCOME',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_investment',
+        'name': '投资理财',
+        'icon_name': 'trending_up',
+        'color_hex': '#26A69A',
+        'type': 'INCOME',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_business',
+        'name': '经营所得',
+        'icon_name': 'storefront',
+        'color_hex': '#00897B',
+        'type': 'INCOME',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_gift_income',
+        'name': '礼金红包',
+        'icon_name': 'redeem',
+        'color_hex': '#E91E63',
+        'type': 'INCOME',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_secondhand',
+        'name': '闲置变现',
+        'icon_name': 'swap_horizontal_circle',
+        'color_hex': '#8BC34A',
+        'type': 'INCOME',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_reimbursement',
+        'name': '报销返还',
+        'icon_name': 'receipt_long',
+        'color_hex': '#00ACC1',
+        'type': 'INCOME',
+        'is_custom': 0,
+      },
+      {
+        'id': 'cat_other_income',
+        'name': '其他收入',
+        'icon_name': 'monetization_on',
+        'color_hex': '#8791A5',
+        'type': 'INCOME',
         'is_custom': 0,
       },
     ];

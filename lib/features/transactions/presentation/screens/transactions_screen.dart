@@ -396,7 +396,14 @@ const _transactionCategoryIcons = <String, IconData>{
   'cat_medical': Icons.medical_services_outlined,
   'cat_other': Icons.category_outlined,
   'cat_salary': Icons.account_balance_wallet_outlined,
-  'cat_bonus': Icons.trending_up,
+  'cat_bonus': Icons.card_giftcard_outlined,
+  'cat_part_time': Icons.work_outline,
+  'cat_investment': Icons.trending_up,
+  'cat_business': Icons.storefront_outlined,
+  'cat_gift_income': Icons.redeem_outlined,
+  'cat_secondhand': Icons.swap_horizontal_circle_outlined,
+  'cat_reimbursement': Icons.receipt_long_outlined,
+  'cat_other_income': Icons.monetization_on_outlined,
 };
 
 Color _transactionCategoryColor(String hex) {

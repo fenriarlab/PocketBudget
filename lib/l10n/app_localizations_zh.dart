@@ -781,4 +781,128 @@ class AppLocalizationsZh extends AppLocalizations {
   String viewAllRecords(Object count) {
     return '查看全部 $count 笔明细';
   }
+
+  @override
+  String get expenseAnalysis => '支出分析';
+
+  @override
+  String get incomeAnalysis => '收入分析';
+
+  @override
+  String get totalSpending => '总支出';
+
+  @override
+  String get totalIncome => '总收入';
+
+  @override
+  String get transactionCountLabel => '交易笔数';
+
+  @override
+  String get dailyAverage => '日均';
+
+  @override
+  String get maxSingleTransaction => '单笔最高';
+
+  @override
+  String get categoryLeaderboard => '分类占比排行';
+
+  @override
+  String get selectedCategoryDetail => '分类明细速览';
+
+  @override
+  String get noTransactionsInPeriod => '该周期内暂无收支记录';
+
+  @override
+  String get tapCategoryToFilter => '点击分类可查看交易明细';
+
+  @override
+  String get allCategories => '全部分类';
+
+  @override
+  String get clearSelection => '取消选中';
+
+  @override
+  String get ratioLabel => '占比';
+
+  @override
+  String get averagePerTx => '单笔均值';
+
+  @override
+  String budgetUsedPercent(Object percent) {
+    return '已用 $percent% 预算';
+  }
+
+  @override
+  String budgetOverspentPercent(Object percent) {
+    return '超支 $percent%';
+  }
+
+  @override
+  String dailyBudgetUsedPercent(Object percent) {
+    return '当日已用 $percent%';
+  }
+
+  @override
+  String dailyBudgetOverspentPercent(Object percent) {
+    return '当日超额 $percent%';
+  }
+
+  @override
+  String incomeUsedPercent(Object percent) {
+    return '支出占收入 $percent%';
+  }
+
+  @override
+  String get noBudgetSetShort => '未设预算';
+
+  @override
+  String get dailyNoBudget => '未设每日限额';
+
+  @override
+  String get onboardingWelcome => '欢迎使用 PocketBudget';
+
+  @override
+  String get onboardingSubtitle => '100% 本地存储 · 隐私优先的财务助手';
+
+  @override
+  String get getStarted => '开启我的纯净账本';
+
+  @override
+  String get optionalBadge => '选填';
+
+  @override
+  String get categoryPartTime => '兼职副业';
+
+  @override
+  String get categoryInvestment => '投资理财';
+
+  @override
+  String get categoryBusiness => '经营所得';
+
+  @override
+  String get categoryGiftIncome => '礼金红包';
+
+  @override
+  String get categorySecondhand => '闲置变现';
+
+  @override
+  String get categoryReimbursement => '报销返还';
+
+  @override
+  String get categoryOtherIncome => '其他收入';
+
+  @override
+  String get addIncomeCategory => '新增收入类别';
+
+  @override
+  String get incomeCategoriesTitle => '收入类别';
+
+  @override
+  String get incomeCategoriesSubtitle => '自定义记账时使用的收入类别';
+
+  @override
+  String get categoriesTabExpense => '支出分类';
+
+  @override
+  String get categoriesTabIncome => '收入分类';
 }

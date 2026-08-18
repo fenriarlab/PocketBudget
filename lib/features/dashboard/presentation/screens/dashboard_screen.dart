@@ -150,11 +150,82 @@ class DashboardScreen extends StatelessWidget {
       ]);
     }
 
-    final progress = monthlyBudget == null
-        ? 0.0
-        : (monthlyBudget! > 0
-            ? (budgetUsed / monthlyBudget!).clamp(0.0, 1.0)
-            : 0.0);
+    final targetMonth = selectedMonth ?? now;
+    final targetDate = selectedDate ?? now;
+    final targetDaysInMonth =
+        DateUtils.getDaysInMonth(targetMonth.year, targetMonth.month);
+
+    double selectedDayExpense = 0.0;
+    if (transactions != null) {
+      for (final tx in transactions!) {
+        if (tx.date.year == targetDate.year &&
+            tx.date.month == targetDate.month &&
+            tx.date.day == targetDate.day &&
+            tx.type == TransactionType.expense &&
+            tx.categoryId != 'cat_savings') {
+          selectedDayExpense += tx.amount;
+        }
+      }
+    }
+
+    final double monthlyProgress;
+    final String monthlyLabel;
+    final Color monthlyColor;
+
+    if (monthlyBudget != null && monthlyBudget! > 0) {
+      final monthlyRatio = budgetUsed / monthlyBudget!;
+      monthlyProgress = monthlyRatio.clamp(0.0, 1.0);
+      final percent = (monthlyRatio * 100).round();
+      if (monthlyRatio > 1.0) {
+        monthlyLabel = l10n.budgetOverspentPercent(percent);
+        monthlyColor = AppColors.expense;
+      } else if (monthlyRatio > 0.8) {
+        monthlyLabel = l10n.budgetUsedPercent(percent);
+        monthlyColor = AppColors.warning;
+      } else {
+        monthlyLabel = l10n.budgetUsedPercent(percent);
+        monthlyColor = AppColors.primary;
+      }
+    } else {
+      if (monthlyIncome > 0) {
+        final incomeRatio = monthlyExpense / monthlyIncome;
+        monthlyProgress = incomeRatio.clamp(0.0, 1.0);
+        final percent = (incomeRatio * 100).round();
+        monthlyLabel = l10n.incomeUsedPercent(percent);
+        monthlyColor =
+            incomeRatio > 1.0 ? AppColors.expense : AppColors.primary;
+      } else {
+        monthlyProgress = 0.0;
+        monthlyLabel = l10n.noBudgetSetShort;
+        monthlyColor = AppColors.textMuted;
+      }
+    }
+
+    final double dailyProgress;
+    final String dailyLabel;
+    final Color dailyColor;
+
+    if (monthlyBudget != null && monthlyBudget! > 0) {
+      final dailyBaseline = monthlyBudget! / targetDaysInMonth;
+      final dailyRatio =
+          dailyBaseline > 0 ? selectedDayExpense / dailyBaseline : 0.0;
+      dailyProgress = dailyRatio.clamp(0.0, 1.0);
+      final percent = (dailyRatio * 100).round();
+      if (dailyRatio > 1.0) {
+        dailyLabel = l10n.dailyBudgetOverspentPercent(percent);
+        dailyColor = AppColors.expense;
+      } else if (dailyRatio > 0.8) {
+        dailyLabel = l10n.dailyBudgetUsedPercent(percent);
+        dailyColor = AppColors.warning;
+      } else {
+        dailyLabel = l10n.dailyBudgetUsedPercent(percent);
+        dailyColor = AppColors.income;
+      }
+    } else {
+      dailyProgress = 0.0;
+      dailyLabel = l10n.dailyNoBudget;
+      dailyColor = AppColors.textMuted;
+    }
 
     return Column(
       children: [
@@ -166,12 +237,12 @@ class DashboardScreen extends StatelessWidget {
             expense: _amount(monthlyExpense),
             income: _amount(monthlyIncome),
             balance: _amount(liquidBalance),
-            expenseProgress: progress,
-            incomeProgress: monthlyBudget == null
-                ? 0.0
-                : (monthlyBudget! > 0
-                    ? (monthlyIncome / monthlyBudget!).clamp(0.0, 1.0)
-                    : 0.0),
+            monthlyLabel: monthlyLabel,
+            monthlyProgress: monthlyProgress,
+            monthlyColor: monthlyColor,
+            dailyLabel: dailyLabel,
+            dailyProgress: dailyProgress,
+            dailyColor: dailyColor,
             l10n: l10n,
           ),
         ),
@@ -201,17 +272,26 @@ class _MonthlySummaryCard extends StatelessWidget {
   final String expense;
   final String income;
   final String balance;
-  final double expenseProgress;
-  final double incomeProgress;
+  final String monthlyLabel;
+  final double monthlyProgress;
+  final Color monthlyColor;
+  final String dailyLabel;
+  final double dailyProgress;
+  final Color dailyColor;
   final AppLocalizations l10n;
 
-  const _MonthlySummaryCard(
-      {required this.expense,
-      required this.income,
-      required this.balance,
-      required this.expenseProgress,
-      required this.incomeProgress,
-      required this.l10n});
+  const _MonthlySummaryCard({
+    required this.expense,
+    required this.income,
+    required this.balance,
+    required this.monthlyLabel,
+    required this.monthlyProgress,
+    required this.monthlyColor,
+    required this.dailyLabel,
+    required this.dailyProgress,
+    required this.dailyColor,
+    required this.l10n,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -256,17 +336,20 @@ class _MonthlySummaryCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                  child: _ProgressLine(
-                      label:
-                          l10n.budgetPercent((expenseProgress * 100).round()),
-                      value: expenseProgress,
-                      color: AppColors.expense)),
+                child: _ProgressLine(
+                  label: monthlyLabel,
+                  value: monthlyProgress,
+                  color: monthlyColor,
+                ),
+              ),
               const SizedBox(width: 18),
               Expanded(
-                  child: _ProgressLine(
-                      label: l10n.budgetPercent((incomeProgress * 100).round()),
-                      value: incomeProgress,
-                      color: AppColors.income)),
+                child: _ProgressLine(
+                  label: dailyLabel,
+                  value: dailyProgress,
+                  color: dailyColor,
+                ),
+              ),
             ],
           ),
         ],

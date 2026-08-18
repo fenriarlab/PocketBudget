@@ -1525,6 +1525,234 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'查看全部 {count} 笔明细'**
   String viewAllRecords(Object count);
+
+  /// No description provided for @expenseAnalysis.
+  ///
+  /// In zh, this message translates to:
+  /// **'支出分析'**
+  String get expenseAnalysis;
+
+  /// No description provided for @incomeAnalysis.
+  ///
+  /// In zh, this message translates to:
+  /// **'收入分析'**
+  String get incomeAnalysis;
+
+  /// No description provided for @totalSpending.
+  ///
+  /// In zh, this message translates to:
+  /// **'总支出'**
+  String get totalSpending;
+
+  /// No description provided for @totalIncome.
+  ///
+  /// In zh, this message translates to:
+  /// **'总收入'**
+  String get totalIncome;
+
+  /// No description provided for @transactionCountLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'交易笔数'**
+  String get transactionCountLabel;
+
+  /// No description provided for @dailyAverage.
+  ///
+  /// In zh, this message translates to:
+  /// **'日均'**
+  String get dailyAverage;
+
+  /// No description provided for @maxSingleTransaction.
+  ///
+  /// In zh, this message translates to:
+  /// **'单笔最高'**
+  String get maxSingleTransaction;
+
+  /// No description provided for @categoryLeaderboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类占比排行'**
+  String get categoryLeaderboard;
+
+  /// No description provided for @selectedCategoryDetail.
+  ///
+  /// In zh, this message translates to:
+  /// **'分类明细速览'**
+  String get selectedCategoryDetail;
+
+  /// No description provided for @noTransactionsInPeriod.
+  ///
+  /// In zh, this message translates to:
+  /// **'该周期内暂无收支记录'**
+  String get noTransactionsInPeriod;
+
+  /// No description provided for @tapCategoryToFilter.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击分类可查看交易明细'**
+  String get tapCategoryToFilter;
+
+  /// No description provided for @allCategories.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部分类'**
+  String get allCategories;
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消选中'**
+  String get clearSelection;
+
+  /// No description provided for @ratioLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'占比'**
+  String get ratioLabel;
+
+  /// No description provided for @averagePerTx.
+  ///
+  /// In zh, this message translates to:
+  /// **'单笔均值'**
+  String get averagePerTx;
+
+  /// No description provided for @budgetUsedPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'已用 {percent}% 预算'**
+  String budgetUsedPercent(Object percent);
+
+  /// No description provided for @budgetOverspentPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'超支 {percent}%'**
+  String budgetOverspentPercent(Object percent);
+
+  /// No description provided for @dailyBudgetUsedPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当日已用 {percent}%'**
+  String dailyBudgetUsedPercent(Object percent);
+
+  /// No description provided for @dailyBudgetOverspentPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当日超额 {percent}%'**
+  String dailyBudgetOverspentPercent(Object percent);
+
+  /// No description provided for @incomeUsedPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'支出占收入 {percent}%'**
+  String incomeUsedPercent(Object percent);
+
+  /// No description provided for @noBudgetSetShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设预算'**
+  String get noBudgetSetShort;
+
+  /// No description provided for @dailyNoBudget.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设每日限额'**
+  String get dailyNoBudget;
+
+  /// No description provided for @onboardingWelcome.
+  ///
+  /// In zh, this message translates to:
+  /// **'欢迎使用 PocketBudget'**
+  String get onboardingWelcome;
+
+  /// No description provided for @onboardingSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'100% 本地存储 · 隐私优先的财务助手'**
+  String get onboardingSubtitle;
+
+  /// No description provided for @getStarted.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启我的纯净账本'**
+  String get getStarted;
+
+  /// No description provided for @optionalBadge.
+  ///
+  /// In zh, this message translates to:
+  /// **'选填'**
+  String get optionalBadge;
+
+  /// No description provided for @categoryPartTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'兼职副业'**
+  String get categoryPartTime;
+
+  /// No description provided for @categoryInvestment.
+  ///
+  /// In zh, this message translates to:
+  /// **'投资理财'**
+  String get categoryInvestment;
+
+  /// No description provided for @categoryBusiness.
+  ///
+  /// In zh, this message translates to:
+  /// **'经营所得'**
+  String get categoryBusiness;
+
+  /// No description provided for @categoryGiftIncome.
+  ///
+  /// In zh, this message translates to:
+  /// **'礼金红包'**
+  String get categoryGiftIncome;
+
+  /// No description provided for @categorySecondhand.
+  ///
+  /// In zh, this message translates to:
+  /// **'闲置变现'**
+  String get categorySecondhand;
+
+  /// No description provided for @categoryReimbursement.
+  ///
+  /// In zh, this message translates to:
+  /// **'报销返还'**
+  String get categoryReimbursement;
+
+  /// No description provided for @categoryOtherIncome.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他收入'**
+  String get categoryOtherIncome;
+
+  /// No description provided for @addIncomeCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'新增收入类别'**
+  String get addIncomeCategory;
+
+  /// No description provided for @incomeCategoriesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'收入类别'**
+  String get incomeCategoriesTitle;
+
+  /// No description provided for @incomeCategoriesSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义记账时使用的收入类别'**
+  String get incomeCategoriesSubtitle;
+
+  /// No description provided for @categoriesTabExpense.
+  ///
+  /// In zh, this message translates to:
+  /// **'支出分类'**
+  String get categoriesTabExpense;
+
+  /// No description provided for @categoriesTabIncome.
+  ///
+  /// In zh, this message translates to:
+  /// **'收入分类'**
+  String get categoriesTabIncome;
 }
 
 class _AppLocalizationsDelegate

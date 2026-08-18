@@ -808,4 +808,129 @@ class AppLocalizationsEn extends AppLocalizations {
   String viewAllRecords(Object count) {
     return 'View all $count records';
   }
+
+  @override
+  String get expenseAnalysis => 'Expense Analysis';
+
+  @override
+  String get incomeAnalysis => 'Income Analysis';
+
+  @override
+  String get totalSpending => 'Total Expense';
+
+  @override
+  String get totalIncome => 'Total Income';
+
+  @override
+  String get transactionCountLabel => 'Transactions';
+
+  @override
+  String get dailyAverage => 'Daily Avg';
+
+  @override
+  String get maxSingleTransaction => 'Max Single';
+
+  @override
+  String get categoryLeaderboard => 'Category Leaderboard';
+
+  @override
+  String get selectedCategoryDetail => 'Category Breakdown';
+
+  @override
+  String get noTransactionsInPeriod => 'No records in this period';
+
+  @override
+  String get tapCategoryToFilter => 'Tap a category to view transactions';
+
+  @override
+  String get allCategories => 'All Categories';
+
+  @override
+  String get clearSelection => 'Clear Selection';
+
+  @override
+  String get ratioLabel => 'Share';
+
+  @override
+  String get averagePerTx => 'Avg / Tx';
+
+  @override
+  String budgetUsedPercent(Object percent) {
+    return '$percent% budget used';
+  }
+
+  @override
+  String budgetOverspentPercent(Object percent) {
+    return 'Overspent $percent%';
+  }
+
+  @override
+  String dailyBudgetUsedPercent(Object percent) {
+    return 'Today $percent% used';
+  }
+
+  @override
+  String dailyBudgetOverspentPercent(Object percent) {
+    return 'Today $percent% over';
+  }
+
+  @override
+  String incomeUsedPercent(Object percent) {
+    return 'Expense $percent% of income';
+  }
+
+  @override
+  String get noBudgetSetShort => 'No budget set';
+
+  @override
+  String get dailyNoBudget => 'No daily limit';
+
+  @override
+  String get onboardingWelcome => 'Welcome to PocketBudget';
+
+  @override
+  String get onboardingSubtitle =>
+      '100% Local & Privacy-First Personal Budgeting';
+
+  @override
+  String get getStarted => 'Get Started';
+
+  @override
+  String get optionalBadge => 'Optional';
+
+  @override
+  String get categoryPartTime => 'Side Gig';
+
+  @override
+  String get categoryInvestment => 'Investment';
+
+  @override
+  String get categoryBusiness => 'Business';
+
+  @override
+  String get categoryGiftIncome => 'Red Packet & Gift';
+
+  @override
+  String get categorySecondhand => 'Resale';
+
+  @override
+  String get categoryReimbursement => 'Reimbursement';
+
+  @override
+  String get categoryOtherIncome => 'Other Income';
+
+  @override
+  String get addIncomeCategory => 'Add Income Category';
+
+  @override
+  String get incomeCategoriesTitle => 'Income Categories';
+
+  @override
+  String get incomeCategoriesSubtitle => 'Manage custom categories for income';
+
+  @override
+  String get categoriesTabExpense => 'Expense';
+
+  @override
+  String get categoriesTabIncome => 'Income';
 }

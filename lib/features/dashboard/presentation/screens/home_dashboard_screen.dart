@@ -279,11 +279,12 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           currencyCode: widget.currencyCode,
           onEditInitialBalance: _showInitialBalanceDialog,
           expenseCategories: _expenseCategories,
-          onAddExpenseCategory: (name) async {
-            await _categoryRepository.addExpenseCategory(name);
+          incomeCategories: _incomeCategories,
+          onAddCategory: (name, type) async {
+            await _categoryRepository.addCategory(name, type: type);
             await _loadData();
           },
-          onDeleteExpenseCategory: (category) async {
+          onDeleteCategory: (category) async {
             final deleted = await _categoryRepository.deleteCategory(category);
             if (!deleted && mounted) {
               final l10n = AppLocalizations.of(context)!;
@@ -343,8 +344,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       builder: (sheetContext) => _TransactionSheet(
         date: date,
         expenseCategories: _expenseCategories,
-        onAddCategory: (name) async {
-          final category = await _categoryRepository.addExpenseCategory(name);
+        incomeCategories: _incomeCategories,
+        onAddCategory: (name, type) async {
+          final category =
+              await _categoryRepository.addCategory(name, type: type);
           return category;
         },
         onSave: (transaction) async {
@@ -384,8 +387,10 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
         date: transaction.date,
         initialTransaction: transaction,
         expenseCategories: _expenseCategories,
-        onAddCategory: (name) async {
-          final category = await _categoryRepository.addExpenseCategory(name);
+        incomeCategories: _incomeCategories,
+        onAddCategory: (name, type) async {
+          final category =
+              await _categoryRepository.addCategory(name, type: type);
           return category;
         },
         onSave: (updatedTransaction) async {
@@ -936,13 +941,16 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
 class _TransactionSheet extends StatefulWidget {
   final DateTime date;
   final List<CategoryModel> expenseCategories;
+  final List<CategoryModel> incomeCategories;
   final TransactionModel? initialTransaction;
   final Future<void> Function(TransactionModel transaction) onSave;
-  final Future<CategoryModel?> Function(String name)? onAddCategory;
+  final Future<CategoryModel?> Function(String name, CategoryType type)?
+      onAddCategory;
 
   const _TransactionSheet({
     required this.date,
     required this.expenseCategories,
+    required this.incomeCategories,
     this.initialTransaction,
     required this.onSave,
     this.onAddCategory,
@@ -962,11 +970,13 @@ class _TransactionSheetState extends State<_TransactionSheet> {
   bool _isSaving = false;
   int _categoryPage = 0;
   late List<CategoryModel> _availableExpenseCategories;
+  late List<CategoryModel> _availableIncomeCategories;
 
   @override
   void initState() {
     super.initState();
     _availableExpenseCategories = [...widget.expenseCategories];
+    _availableIncomeCategories = [...widget.incomeCategories];
     final transaction = widget.initialTransaction;
     if (transaction != null) {
       _amountController.text = transaction.amount.toStringAsFixed(2);
@@ -1101,7 +1111,7 @@ class _TransactionSheetState extends State<_TransactionSheet> {
               categories: categories,
               selectedCategoryId: selectedCategoryId,
               page: _categoryPage,
-              showCustomPage: _selectedType == TransactionType.expense,
+              showCustomPage: true,
               localizedName: (category) => _localizedCategory(category, l10n),
               onSelected: (category) => setState(() {
                 _category = category.id;
@@ -1111,12 +1121,23 @@ class _TransactionSheetState extends State<_TransactionSheet> {
               onAddCategory: widget.onAddCategory == null
                   ? null
                   : () async {
-                      final name = await _showAddCategoryDialog(context);
+                      final isIncome = _selectedType == TransactionType.income;
+                      final name = await _showAddCategoryDialog(
+                        context,
+                        isIncome: isIncome,
+                      );
                       if (name == null || name.isEmpty || !mounted) return;
-                      final category = await widget.onAddCategory!(name);
+                      final category = await widget.onAddCategory!(
+                        name,
+                        isIncome ? CategoryType.income : CategoryType.expense,
+                      );
                       if (category == null || !mounted) return;
                       setState(() {
-                        _availableExpenseCategories.add(category);
+                        if (isIncome) {
+                          _availableIncomeCategories.add(category);
+                        } else {
+                          _availableExpenseCategories.add(category);
+                        }
                         _categoryPage = 1;
                         _category = category.id;
                         _icon = category.icon;
@@ -1262,24 +1283,13 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       if (orderedCategories.isNotEmpty) return orderedCategories;
       return _defaultExpenseCategories;
     }
-    return const {
-      'cat_salary': CategoryModel(
-        id: 'cat_salary',
-        name: '工资收入',
-        icon: '💰',
-        colorHex: '#55B98A',
-        type: CategoryType.income,
-        isCustom: false,
-      ),
-      'cat_bonus': CategoryModel(
-        id: 'cat_bonus',
-        name: '理财/奖金',
-        icon: '📈',
-        colorHex: '#58A99A',
-        type: CategoryType.income,
-        isCustom: false,
-      ),
+    final categories = [..._availableIncomeCategories]
+      ..sort(_compareIncomeCategories);
+    final orderedCategories = {
+      for (final category in categories) category.id: category,
     };
+    if (orderedCategories.isNotEmpty) return orderedCategories;
+    return _defaultIncomeCategories;
   }
 
   static int _compareCategories(CategoryModel left, CategoryModel right) {
@@ -1304,6 +1314,32 @@ class _TransactionSheetState extends State<_TransactionSheet> {
     'cat_education',
     'cat_medical',
     'cat_other',
+  ];
+
+  static int _compareIncomeCategories(
+      CategoryModel left, CategoryModel right) {
+    final leftIndex = _incomeCategoryOrder.indexOf(left.id);
+    final rightIndex = _incomeCategoryOrder.indexOf(right.id);
+    final normalizedLeft =
+        leftIndex < 0 ? _incomeCategoryOrder.length : leftIndex;
+    final normalizedRight =
+        rightIndex < 0 ? _incomeCategoryOrder.length : rightIndex;
+    if (normalizedLeft != normalizedRight) {
+      return normalizedLeft.compareTo(normalizedRight);
+    }
+    return left.name.compareTo(right.name);
+  }
+
+  static const _incomeCategoryOrder = [
+    'cat_salary',
+    'cat_bonus',
+    'cat_part_time',
+    'cat_investment',
+    'cat_business',
+    'cat_gift_income',
+    'cat_secondhand',
+    'cat_reimbursement',
+    'cat_other_income',
   ];
 
   static const _defaultExpenseCategories = {
@@ -1389,6 +1425,81 @@ class _TransactionSheetState extends State<_TransactionSheet> {
     ),
   };
 
+  static const _defaultIncomeCategories = {
+    'cat_salary': CategoryModel(
+      id: 'cat_salary',
+      name: '工资收入',
+      icon: '💰',
+      colorHex: '#55B98A',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_bonus': CategoryModel(
+      id: 'cat_bonus',
+      name: '奖金津贴',
+      icon: '🎁',
+      colorHex: '#58A99A',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_part_time': CategoryModel(
+      id: 'cat_part_time',
+      name: '兼职副业',
+      icon: '💼',
+      colorHex: '#4CAF50',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_investment': CategoryModel(
+      id: 'cat_investment',
+      name: '投资理财',
+      icon: '📈',
+      colorHex: '#26A69A',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_business': CategoryModel(
+      id: 'cat_business',
+      name: '经营所得',
+      icon: '🏪',
+      colorHex: '#00897B',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_gift_income': CategoryModel(
+      id: 'cat_gift_income',
+      name: '礼金红包',
+      icon: '🧧',
+      colorHex: '#E91E63',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_secondhand': CategoryModel(
+      id: 'cat_secondhand',
+      name: '闲置变现',
+      icon: '♻️',
+      colorHex: '#8BC34A',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_reimbursement': CategoryModel(
+      id: 'cat_reimbursement',
+      name: '报销返还',
+      icon: '🧾',
+      colorHex: '#00ACC1',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+    'cat_other_income': CategoryModel(
+      id: 'cat_other_income',
+      name: '其他收入',
+      icon: '🪙',
+      colorHex: '#8791A5',
+      type: CategoryType.income,
+      isCustom: false,
+    ),
+  };
+
   void _selectType(TransactionType type) {
     final categories = _categoriesForType(type);
     if (categories.isEmpty) return;
@@ -1414,19 +1525,38 @@ class _TransactionSheetState extends State<_TransactionSheet> {
       case '娱乐':
         return l10n.categoryEntertainment;
       case '工资收入':
+      case '工资':
         return l10n.categorySalary;
       case '理财/奖金':
+      case '奖金津贴':
+      case '奖金':
         return l10n.categoryBonus;
+      case '兼职副业':
+        return l10n.categoryPartTime;
+      case '投资理财':
+        return l10n.categoryInvestment;
+      case '经营所得':
+        return l10n.categoryBusiness;
+      case '礼金红包':
+        return l10n.categoryGiftIncome;
+      case '闲置变现':
+        return l10n.categorySecondhand;
+      case '报销返还':
+        return l10n.categoryReimbursement;
+      case '其他收入':
+        return l10n.categoryOtherIncome;
       default:
         return category;
     }
   }
 
-  Future<String?> _showAddCategoryDialog(BuildContext context) async {
+  Future<String?> _showAddCategoryDialog(BuildContext context,
+      {bool isIncome = false}) async {
     final l10n = AppLocalizations.of(context)!;
     final name = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => _AddCategoryDialog(l10n: l10n),
+      builder: (dialogContext) =>
+          _AddCategoryDialog(l10n: l10n, isIncome: isIncome),
     );
     await WidgetsBinding.instance.endOfFrame;
     return name;
@@ -1435,8 +1565,9 @@ class _TransactionSheetState extends State<_TransactionSheet> {
 
 class _AddCategoryDialog extends StatefulWidget {
   final AppLocalizations l10n;
+  final bool isIncome;
 
-  const _AddCategoryDialog({required this.l10n});
+  const _AddCategoryDialog({required this.l10n, this.isIncome = false});
 
   @override
   State<_AddCategoryDialog> createState() => _AddCategoryDialogState();
@@ -1465,7 +1596,9 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.l10n.addExpenseCategory),
+      title: Text(widget.isIncome
+          ? widget.l10n.addIncomeCategory
+          : widget.l10n.addExpenseCategory),
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -1792,7 +1925,7 @@ class _AddCategoryTile extends StatelessWidget {
           ),
           const SizedBox(height: 5),
           Text(
-            AppLocalizations.of(context)!.addExpenseCategory,
+            AppLocalizations.of(context)!.addCategory,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -1834,7 +1967,14 @@ const _builtInCategoryIcons = <String, IconData>{
   'cat_medical': Icons.medical_services_outlined,
   'cat_other': Icons.category_outlined,
   'cat_salary': Icons.account_balance_wallet_outlined,
-  'cat_bonus': Icons.trending_up,
+  'cat_bonus': Icons.card_giftcard_outlined,
+  'cat_part_time': Icons.work_outline,
+  'cat_investment': Icons.trending_up,
+  'cat_business': Icons.storefront_outlined,
+  'cat_gift_income': Icons.redeem_outlined,
+  'cat_secondhand': Icons.swap_horizontal_circle_outlined,
+  'cat_reimbursement': Icons.receipt_long_outlined,
+  'cat_other_income': Icons.monetization_on_outlined,
 };
 
 Color _categoryColor(String hex) {

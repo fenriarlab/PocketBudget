@@ -45,3 +45,4 @@ windows/flutter/ephemeral/
 docs/
 .DS_Store
 Thumbs.db
+obfuscate_symbols/
